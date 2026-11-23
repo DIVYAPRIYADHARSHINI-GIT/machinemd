@@ -131,6 +131,23 @@ def test_forged_journal_entry_is_rejected(instances):
     assert c.req(1, "GET", "/machines/1").status_code == 200  # still exists: the forged op was ignored
 
 
+def test_logout_revocation_reaches_other_instance_via_journal(instances):
+    """BUG-08: after signing out on instance A, the old token is refused by instance B whenever the
+    browser's journal is present (every request the app itself makes)."""
+    c = Client(instances)
+    c.login(0, "admin@machinemd.com", "Admin@123")
+    old = c.token
+    assert c.req(0, "POST", "/auth/logout").status_code == 200
+    assert c.req(0, "GET", "/auth/me").status_code == 401
+    assert c.req(1, "GET", "/auth/me").status_code == 401  # B replays the logout from the journal
+    # The next user signing in from the same browser still works on both instances.
+    c.login(1, "viewer@machinemd.com", "Viewer@123")
+    assert c.req(0, "GET", "/auth/me").json()["role"] == "viewer"
+    # Known limitation (documented): a copied token sent WITHOUT the journal to an instance that never
+    # saw the logout is accepted until it expires - true revocation needs shared storage.
+    assert old
+
+
 def test_journal_is_not_needed_locally(instances):
     """A single instance answers normally without any journal header (local runs, tests)."""
     r = httpx.get(instances[0] + "/health", timeout=10)

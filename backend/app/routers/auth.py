@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
@@ -69,9 +70,17 @@ def login(body: LoginIn, request: Request, db: Session = Depends(get_db)):
 
 
 @router.post("/logout")
-def logout(payload: dict = Depends(get_token_payload), db: Session = Depends(get_db)):
+async def logout(request: Request, payload: dict = Depends(get_token_payload), db: Session = Depends(get_db)):
+    jti, exp = payload["jti"], payload["exp"]
+    if is_replay(request):
+        # Replayed on another instance (BUG-08): revoke the ORIGINAL token carried in the signed op.
+        try:
+            original = json.loads(await request.body() or b"{}")
+            jti, exp = str(original["jti"]), int(original["exp"])
+        except (ValueError, KeyError, TypeError):
+            raise HTTPException(status.HTTP_400_BAD_REQUEST, "Malformed replayed logout.")
     db.execute(delete(RevokedToken).where(RevokedToken.expires_at < utcnow()))
-    db.merge(RevokedToken(jti=payload["jti"], expires_at=datetime.fromtimestamp(payload["exp"], timezone.utc).replace(tzinfo=None)))
+    db.merge(RevokedToken(jti=jti, expires_at=datetime.fromtimestamp(exp, timezone.utc).replace(tzinfo=None)))
     log_activity(db, payload.get("email"), "logout", "user", payload.get("sub"), "Signed out")
     db.commit()
     return {"ok": True}

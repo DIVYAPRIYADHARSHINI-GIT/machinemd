@@ -62,6 +62,7 @@ MAX_OPS = 200
 JOURNALED_PREFIXES = (
     "/api/machines", "/api/readings", "/api/predictions/refresh", "/api/models", "/api/maintenance",
     "/api/alerts", "/api/users", "/api/settings", "/api/auth/change-password", "/api/admin/reset-demo",
+    "/api/auth/logout",  # BUG-08: the revoked-token denylist must reach every instance too
 )
 
 replay_lock = asyncio.Lock()
@@ -179,6 +180,8 @@ def build_op(op_id: str, t: int, method: str, path: str, body: str, auth_header:
         payload = jwt.decode(token, config.JWT_SECRET, algorithms=[config.JWT_ALGORITHM], options={"verify_exp": False})
     except jwt.InvalidTokenError:
         return None
+    if path.startswith("/api/auth/logout"):
+        body = json.dumps({"jti": payload.get("jti"), "exp": payload.get("exp")}, separators=(",", ":"))
     op = {"id": op_id, "t": t, "m": method, "p": path, "b": _scrub_passwords(path, body),
           "u": {"id": str(payload.get("sub")), "e": payload.get("email"), "r": payload.get("role")}}
     if upload:

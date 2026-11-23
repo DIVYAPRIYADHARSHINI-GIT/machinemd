@@ -20,6 +20,7 @@ try {
   await page.reload({ waitUntil: 'networkidle2' });
   const darkAfter = await page.evaluate(() => document.documentElement.classList.contains('dark'));
   R.ok('F1', 'Dark-mode toggle switches theme and survives a reload', darkNow && darkAfter);
+  await page.waitForSelector('[data-testid=theme-toggle]', { timeout: 30000 }); // session check (/auth/me) after reload
   await page.click('[data-testid=theme-toggle]');
 
   // Machine add / validation / edit / delete
@@ -47,16 +48,20 @@ try {
   const created = (await api(page, 'GET', '/machines')).data.find((m) => m.code === 'PMP-100');
   await page.click('[aria-label="Edit PMP-100"]');
   await page.waitForSelector('#m-name');
-  await page.click('#m-name', { clickCount: 3 });
+  await page.$eval('#m-name', (e) => e.select());
+  await page.keyboard.press('Backspace');
   await page.type('#m-name', 'Renamed Booster Pump');
   await page.click('[data-testid=machine-save]');
-  await page.waitForFunction(() => document.body.innerText.includes('Renamed Booster Pump'), { timeout: 15000 });
-  R.ok('F4', 'Admin can edit a machine', true);
+  await page.waitForSelector('[data-testid=toast-success]', { timeout: 15000 });
+  await settle(page);
+  const renamed = (await api(page, 'GET', '/machines')).data.find((m) => m.code === 'PMP-100');
+  R.ok('F4', 'Admin can edit a machine (name replaced exactly)', renamed?.name === 'Renamed Booster Pump', renamed?.name);
 
   // Add a reading for the new machine -> it gets a prediction
   await go(page, '/data');
   await clickText(page, 'Add reading', '[role=tab]');
   await page.waitForSelector('#ar-machine');
+  await page.waitForFunction((id) => !!document.querySelector(`#ar-machine option[value="${id}"]`), { timeout: 30000 }, String(created.id));
   await page.select('#ar-machine', String(created.id));
   await page.waitForFunction(() => document.querySelector('#ar-temperature')?.value !== '', { timeout: 15000 });
   await clickText(page, 'Save reading');
@@ -143,8 +148,19 @@ try {
   const tok = await sp.evaluate(() => localStorage.getItem('machinemd-token'));
   await sp.click('[data-testid=logout]');
   await sp.waitForSelector('#email');
-  const reuse = await sp.evaluate(async (t) => (await fetch('/api/auth/me', { headers: { Authorization: `Bearer ${t}` } })).status, tok);
-  R.ok('F13', 'Logout revokes the token on the server (reuse -> 401)', reuse === 401, reuse);
+  // Reuse the old token 6 times in parallel, with the browser's journal like the app sends it, so on
+  // Vercel the requests land on several instances (BUG-08).
+  const reuse = await sp.evaluate(async (t) => {
+    const H = { Authorization: `Bearer ${t}` };
+    const ops = JSON.parse(localStorage.getItem('machinemd-journal') || '[]');
+    if (ops.length) {
+      const b64url = (bytes) => btoa(String.fromCharCode(...bytes)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+      const stream = new Blob([new TextEncoder().encode(JSON.stringify(ops))]).stream().pipeThrough(new CompressionStream('deflate'));
+      H['X-MachineMD-Journal'] = `z:${b64url(new Uint8Array(await new Response(stream).arrayBuffer()))}`;
+    }
+    return Promise.all(Array.from({ length: 6 }, () => fetch('/api/auth/me', { headers: H, cache: 'no-store' }).then((r) => r.status)));
+  }, tok);
+  R.ok('F13', 'Logout revokes the token on every instance (6 parallel reuses -> all 401)', reuse.every((s) => s === 401), reuse.join(','));
   await sp.evaluate(() => localStorage.setItem('machinemd-token', 'eyJhbGciOiJIUzI1NiJ9.e30.invalid'));
   await go(sp, '/machines');
   R.ok('F14', 'An invalid/expired session sends the user back to sign in', sp.url().endsWith('/login'), sp.url());

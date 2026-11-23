@@ -246,11 +246,17 @@ try {
   R.ok('MT1', 'Maintenance log lists the new record', (await text(page)).includes('Replaced drive-end bearing'));
   await page.click('[data-testid=edit-maintenance]');
   await page.waitForSelector('#mt-cost');
-  await page.$eval('#mt-cost', (e) => (e.value = ''));
-  await page.click('#mt-cost', { clickCount: 3 });
+  // Clear the number field the way a user does (select all, then delete). Setting .value directly
+  // does not update React state, and headless Chrome ignores triple-click / Cmd+A selection on
+  // type=number inputs, so the earlier test appended to the old value (test-harness issue, not an app bug).
+  await page.focus('#mt-cost');
+  await page.$eval('#mt-cost', (e) => e.select()); // HTMLInputElement.select() works on number inputs
+  await page.keyboard.press('Backspace');
   await page.type('#mt-cost', '45500');
+  const typedCost = await page.$eval('#mt-cost', (e) => e.value);
+  R.ok('MT1b', 'Cost field holds exactly the typed value before saving', typedCost === '45500', typedCost);
   await page.click('[data-testid=maintenance-save]');
-  await page.waitForSelector('[data-testid=toast-success]', { timeout: 20000 });
+  await page.waitForSelector('[data-testid=toast-success], [data-testid=toast-error]', { timeout: 20000 });
   await settle(page);
   R.ok('MT2', 'Editing a maintenance record saves the new cost', (await text(page)).includes('45,500'));
   await shot(page, `${prefix}WORKING-09-maintenance`);
