@@ -35,3 +35,6 @@ reports/.tmp-*
 
 # NOTE: backend/data/machinemd.db and backend/data/models/*.joblib are committed on purpose -
 # the live (Vercel) app loads them; it cannot train heavy models inside a request.
+
+# e2e run outputs (summarised in reports/evidence)
+e2e/results-*.json
