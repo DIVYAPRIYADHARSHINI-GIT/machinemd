@@ -1,0 +1,9 @@
+# Files Vercel does not need to upload for the build or the Python function.
+.venv/
+**/node_modules/
+**/__pycache__/
+.pytest_cache/
+e2e/
+reports/
+backend/tests/
+frontend/dist/
