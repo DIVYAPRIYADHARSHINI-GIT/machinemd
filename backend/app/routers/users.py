@@ -2,14 +2,14 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, Field, field_validator
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from ..db import get_db
 from ..models import User
-from ..security import hash_password, require_admin
+from ..security import HASH_PREFIX, is_replay, password_hash_for, require_admin
 from ..services.predictions import log_activity
 from ..validation import EMAIL_RE, ROLES, validate_password
 from .auth import user_dict
@@ -41,7 +41,7 @@ class UserCreate(BaseModel):
     @field_validator("password")
     @classmethod
     def _pw(cls, v: str) -> str:
-        return validate_password(v)
+        return v if v.startswith(HASH_PREFIX) else validate_password(v)
 
     @field_validator("name")
     @classmethod
@@ -65,7 +65,7 @@ class UserUpdate(BaseModel):
     @field_validator("password")
     @classmethod
     def _pw(cls, v):
-        return None if v is None else validate_password(v)
+        return None if v is None or v.startswith(HASH_PREFIX) else validate_password(v)
 
 
 def _admin_count(db: Session) -> int:
@@ -78,10 +78,12 @@ def list_users(_: User = Depends(require_admin), db: Session = Depends(get_db)):
 
 
 @router.post("", status_code=201)
-def create_user(body: UserCreate, admin: User = Depends(require_admin), db: Session = Depends(get_db)):
+def create_user(body: UserCreate, request: Request, admin: User = Depends(require_admin), db: Session = Depends(get_db)):
+    if body.password.startswith(HASH_PREFIX) and not is_replay(request):
+        raise HTTPException(422, "Invalid password.")
     if db.scalar(select(User).where(func.lower(User.email) == body.email)):
         raise HTTPException(409, f"A user with e-mail {body.email} already exists.")
-    u = User(email=body.email, name=body.name, role=body.role, password_hash=hash_password(body.password))
+    u = User(email=body.email, name=body.name, role=body.role, password_hash=password_hash_for(body.password, is_replay(request)))
     db.add(u)
     db.flush()
     log_activity(db, admin.email, "user_create", "user", u.id, f"Created {body.role} {body.email}")
@@ -90,7 +92,9 @@ def create_user(body: UserCreate, admin: User = Depends(require_admin), db: Sess
 
 
 @router.put("/{user_id}")
-def update_user(user_id: int, body: UserUpdate, admin: User = Depends(require_admin), db: Session = Depends(get_db)):
+def update_user(user_id: int, body: UserUpdate, request: Request, admin: User = Depends(require_admin), db: Session = Depends(get_db)):
+    if body.password and body.password.startswith(HASH_PREFIX) and not is_replay(request):
+        raise HTTPException(422, "Invalid password.")
     u = db.get(User, user_id)
     if u is None:
         raise HTTPException(404, "User not found.")
@@ -106,7 +110,7 @@ def update_user(user_id: int, body: UserUpdate, admin: User = Depends(require_ad
             setattr(u, field, val.strip() if isinstance(val, str) else val)
             changes.append(field)
     if body.password:
-        u.password_hash = hash_password(body.password)
+        u.password_hash = password_hash_for(body.password, is_replay(request))
         changes.append("password")
     log_activity(db, admin.email, "user_update", "user", u.id, f"Updated {u.email}: {', '.join(changes) or 'no changes'}")
     db.commit()

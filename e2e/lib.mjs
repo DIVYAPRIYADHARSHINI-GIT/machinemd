@@ -106,10 +106,28 @@ export async function clickText(page, text, selector = 'button, a, [role=tab], l
 
 export const text = (page) => page.evaluate(() => document.body.innerText);
 
+/** Same journal handling as frontend/src/lib/api.js, so test calls see every instance's changes. */
 export async function api(page, method, p, body) {
   return page.evaluate(
     async (m, u, b) => {
-      const r = await fetch(`/api${u}`, { method: m, headers: { Authorization: `Bearer ${localStorage.getItem('machinemd-token')}`, ...(b ? { 'Content-Type': 'application/json' } : {}) }, body: b ? JSON.stringify(b) : undefined });
+      const b64url = (bytes) => {
+        let bin = '';
+        for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+        return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+      };
+      const headers = { Authorization: `Bearer ${localStorage.getItem('machinemd-token')}`, ...(b ? { 'Content-Type': 'application/json' } : {}) };
+      const ops = JSON.parse(localStorage.getItem('machinemd-journal') || '[]');
+      if (ops.length) {
+        const stream = new Blob([new TextEncoder().encode(JSON.stringify(ops))]).stream().pipeThrough(new CompressionStream('deflate'));
+        headers['X-MachineMD-Journal'] = `z:${b64url(new Uint8Array(await new Response(stream).arrayBuffer()))}`;
+      }
+      const r = await fetch(`/api${u}`, { method: m, headers, body: b ? JSON.stringify(b) : undefined });
+      const op = r.headers.get('X-MachineMD-Op');
+      if (op) {
+        const parsed = JSON.parse(atob(op.replace(/-/g, '+').replace(/_/g, '/')));
+        const next = parsed.p === '/api/admin/reset-demo' ? [parsed] : [...ops.filter((o) => o.id !== parsed.id), parsed];
+        localStorage.setItem('machinemd-journal', JSON.stringify(next));
+      }
       let data = null;
       try {
         data = await r.json();

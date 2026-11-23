@@ -10,21 +10,23 @@ machines ─┬─< readings
 model_versions (registry; one row is_active)
 settings (key/value JSON: risk thresholds)
 revoked_tokens (logout denylist)
+applied_ops (journaled changes applied on this serverless instance)
 """
 
 from __future__ import annotations
 
-from datetime import date, datetime, timezone
+from datetime import date, datetime
 
 from sqlalchemy import JSON, Boolean, Date, DateTime, Float, ForeignKey, Index, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from .clock import now_utc
 from .db import Base
 
 
 def utcnow() -> datetime:
-    """Naive UTC timestamp (SQLite stores naive datetimes)."""
-    return datetime.now(timezone.utc).replace(tzinfo=None, microsecond=0)
+    """Naive UTC timestamp (SQLite stores naive datetimes); fixed to the original time during a replay."""
+    return now_utc()
 
 
 class User(Base):
@@ -161,6 +163,15 @@ class ActivityLog(Base):
     entity: Mapped[str | None] = mapped_column(String(40), nullable=True)
     entity_id: Mapped[str | None] = mapped_column(String(40), nullable=True)
     detail: Mapped[str] = mapped_column(Text, default="")
+
+
+class AppliedOp(Base):
+    """Journaled client changes already applied to THIS instance's database (see app/sync.py)."""
+
+    __tablename__ = "applied_ops"
+    op_id: Mapped[str] = mapped_column(String(40), primary_key=True)
+    applied_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+    ok: Mapped[bool] = mapped_column(Boolean, default=True)
 
 
 class RevokedToken(Base):

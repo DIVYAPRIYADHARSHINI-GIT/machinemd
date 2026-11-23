@@ -42,16 +42,17 @@ async function whatifState(page) {
 
 try {
   // ------------------------------------------------------------ 0. reset demo state
+  // Done in the same browser context as the run, so the reset stays in this browser's change
+  // journal and every serverless instance applies it (BUG-07).
+  const page = await newPage(browser);
   {
-    const page = await newPage(browser);
     await login(page, 'admin@machinemd.com', 'Admin@123');
     const r = await api(page, 'POST', '/admin/reset-demo');
     R.ok('A0', 'Demo data reset to the committed seed before the run', r.status === 200, JSON.stringify(r));
-    await page.ctx.close();
+    await page.evaluate(() => localStorage.removeItem('machinemd-token'));
   }
 
   // ------------------------------------------------------------ 1. Login page
-  const page = await newPage(browser);
   await page.goto(`${BASE}/login`, { waitUntil: 'networkidle2' });
   R.ok('L1', 'Login page renders with demo accounts', /demo accounts/i.test(await text(page)));
   await shot(page, `${prefix}WORKING-01-login`);

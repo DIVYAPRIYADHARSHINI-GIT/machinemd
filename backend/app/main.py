@@ -18,7 +18,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from . import config
+from . import config, sync
+from .clock import op_time_var
 from .routers import alerts, auth, dashboard, machines, maintenance, models_api, predictions, readings, reports, system, users, whatif
 from .services import bootstrap
 from .services.registry import ModelUnavailable
@@ -40,21 +41,82 @@ app.add_middleware(
     allow_origins=config.CORS_ORIGINS,
     allow_credentials=False,
     allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allow_headers=["Authorization", "Content-Type"],
-    expose_headers=["Content-Disposition", "X-Response-Time"],
+    allow_headers=["Authorization", "Content-Type", "X-MachineMD-Journal"],
+    expose_headers=["Content-Disposition", "X-Response-Time", "X-MachineMD-Op"],
 )
+
+
+async def _upload_payload(request: Request, raw: bytes) -> dict | None:
+    """For an imported CSV upload, keep the CSV text + mapping so other instances can replay it."""
+    form = await request.form()
+    if str(form.get("dry_run", "true")).lower() in ("true", "1", "yes"):
+        return None
+    f = form.get("file")
+    if f is None or not hasattr(f, "read"):
+        return None
+    await f.seek(0)
+    content = (await f.read()).decode("utf-8-sig", errors="replace")
+    await f.seek(0)
+    return {"name": getattr(f, "filename", "upload.csv"), "csv": content, "mapping": form.get("mapping") or ""}
 
 
 @app.middleware("http")
 async def ready_and_timing(request: Request, call_next):
     start = time.perf_counter()
-    if request.url.path.startswith("/api") and request.url.path not in ("/api/docs", "/api/openapi.json"):
+    path = request.url.path
+    if path.startswith("/api") and path not in ("/api/docs", "/api/openapi.json"):
         try:
             bootstrap.ensure_ready()
         except Exception as exc:  # pragma: no cover - surfaced through /api/health
             log.exception("Start-up failed")
             return JSONResponse(status_code=503, content={"detail": f"Service is starting up or misconfigured: {exc}", "code": "startup_failed"})
-    response = await call_next(request)
+
+    internal = sync.parse_internal(request.headers.get(sync.INTERNAL_HEADER))
+    if internal is not None:
+        # An in-process replay of a journaled change: run it at the original time and record it.
+        op_id, t = internal
+        token = op_time_var.set(sync.ts_to_dt(t))
+        try:
+            response = await call_next(request)
+        finally:
+            op_time_var.reset(token)
+        if response.status_code < 400:
+            sync.mark_applied(op_id)
+        return response
+
+    # Multi-instance consistency (BUG-07): replay changes this instance has not seen yet.
+    journal = request.headers.get(sync.JOURNAL_HEADER)
+    is_write = sync.is_journaled_write(request.method, path)
+    if journal or is_write:
+        async with sync.replay_lock:
+            if journal:
+                await sync.replay_missing(app, journal)
+            if not is_write:
+                response = await call_next(request)
+            else:
+                body = await request.body()
+                upload = await _upload_payload(request, body) if path.startswith("/api/readings/upload") else None
+                if path.startswith("/api/readings/upload") and upload is None:
+                    response = await call_next(request)  # dry-run preview: nothing to journal
+                else:
+                    op_id, t = sync.new_op_id(), sync.now_ts()
+                    token = op_time_var.set(sync.ts_to_dt(t))
+                    try:
+                        response = await call_next(request)
+                    finally:
+                        op_time_var.reset(token)
+                    if response.status_code < 400:
+                        sync.mark_applied(op_id)
+                        op = sync.build_op(op_id, t, request.method, path + (f"?{request.url.query}" if request.url.query else ""),
+                                           "" if upload else body.decode("utf-8", errors="replace"), request.headers.get("authorization"), upload)
+                        if op is not None:
+                            encoded = sync.encode_op_header(op)
+                            if len(encoded) <= sync.MAX_OP_HEADER_CHARS:
+                                response.headers[sync.OP_HEADER] = encoded
+                            else:
+                                log.warning("Change %s too large to journal (%d chars); other instances will not see it", op_id, len(encoded))
+    else:
+        response = await call_next(request)
     response.headers["X-Response-Time"] = f"{(time.perf_counter() - start) * 1000:.0f}ms"
     response.headers["X-Content-Type-Options"] = "nosniff"
     response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"

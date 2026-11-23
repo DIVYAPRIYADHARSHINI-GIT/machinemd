@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session
 from ml.train import LIGHT, MODEL_LABELS, TrainConfig, train_bundle
 
 from .. import config
+from ..clock import now_utc
 from ..db import get_db
 from ..models import ModelVersion, User
 from ..security import get_current_user, require_admin
@@ -109,7 +110,7 @@ def retrain(body: RetrainIn, admin: User = Depends(require_admin), db: Session =
     cfg = TrainConfig(**{**LIGHT.__dict__, "prefer": body.serving_model})
     version = registry.next_version(db)
     try:
-        bundle = train_bundle(ds, cfg, version=version, notes=body.notes or f"Light retrain by {admin.email} ({ds.n} readings).")
+        bundle = train_bundle(ds, cfg, version=version, notes=body.notes or f"Light retrain by {admin.email} ({ds.n} readings).", created_at=now_utc())
     except ValueError as e:
         raise HTTPException(422, str(e))
     file_name = registry.save_bundle(bundle, config.RUNTIME_MODELS)

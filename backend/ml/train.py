@@ -162,7 +162,7 @@ def _permutation_importance(model, X: np.ndarray, y: np.ndarray, seed: int, repe
     return out
 
 
-def train_bundle(ds: Dataset, cfg: TrainConfig = TrainConfig(), version: str = "v1", notes: str = "") -> dict:
+def train_bundle(ds: Dataset, cfg: TrainConfig = TrainConfig(), version: str = "v1", notes: str = "", created_at: datetime | None = None) -> dict:
     t_start = time.perf_counter()
     split = time_split(ds)
     lab = ~np.isnan(ds.y_fail)
@@ -233,7 +233,7 @@ def train_bundle(ds: Dataset, cfg: TrainConfig = TrainConfig(), version: str = "
     n_machines = len(set(ds.machine.tolist()))
     return {
         "version": version,
-        "created_at": datetime.now(timezone.utc).isoformat(),
+        "created_at": (created_at.replace(tzinfo=timezone.utc) if created_at else datetime.now(timezone.utc)).isoformat(),
         "mode": cfg.mode,
         "notes": notes,
         "primary": primary,

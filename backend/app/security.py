@@ -25,6 +25,21 @@ def hash_password(password: str) -> str:
     return bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt(rounds=10)).decode("ascii")
 
 
+HASH_PREFIX = "__hash__:"
+
+
+def password_hash_for(value: str, replay: bool) -> str:
+    """Hash a password; during a signed replay the journal already carries the bcrypt hash."""
+    if replay and value.startswith(HASH_PREFIX):
+        return value[len(HASH_PREFIX):]
+    return hash_password(value)
+
+
+def is_replay(request: Request) -> bool:
+    from .sync import INTERNAL_HEADER, parse_internal  # local import: sync imports this module
+    return parse_internal(request.headers.get(INTERNAL_HEADER)) is not None
+
+
 def verify_password(password: str, hashed: str) -> bool:
     try:
         return bcrypt.checkpw(password.encode("utf-8"), hashed.encode("ascii"))

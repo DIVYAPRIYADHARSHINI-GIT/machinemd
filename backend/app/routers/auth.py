@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 
 from ..db import get_db
 from ..models import RevokedToken, User, utcnow
-from ..security import client_ip, create_token, get_current_user, get_token_payload, hash_password, login_limiter, verify_password
+from ..security import HASH_PREFIX, client_ip, create_token, get_current_user, get_token_payload, is_replay, login_limiter, password_hash_for, verify_password
 from ..services.predictions import log_activity
 from ..validation import EMAIL_RE, validate_password
 
@@ -38,7 +38,7 @@ class ChangePasswordIn(BaseModel):
     @field_validator("new_password")
     @classmethod
     def _strong(cls, v: str) -> str:
-        return validate_password(v)
+        return v if v.startswith(HASH_PREFIX) else validate_password(v)
 
 
 def user_dict(u: User) -> dict:
@@ -83,12 +83,18 @@ def me(user: User = Depends(get_current_user)):
 
 
 @router.post("/change-password")
-def change_password(body: ChangePasswordIn, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+def change_password(body: ChangePasswordIn, request: Request, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    if is_replay(request):  # already verified on the instance that handled the original request
+        user.password_hash = password_hash_for(body.new_password, True)
+        db.commit()
+        return {"ok": True, "message": "Password changed."}
+    if body.new_password.startswith(HASH_PREFIX):
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "Invalid password.")
     if not verify_password(body.current_password, user.password_hash):
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Current password is incorrect.")
     if body.current_password == body.new_password:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "The new password must be different from the current one.")
-    user.password_hash = hash_password(body.new_password)
+    user.password_hash = password_hash_for(body.new_password, False)
     log_activity(db, user.email, "change_password", "user", user.id, "Changed own password")
     db.commit()
     return {"ok": True, "message": "Password changed."}
