@@ -1,0 +1,37 @@
+# Dependencies / environments
+node_modules/
+.venv/
+venv/
+env/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Secrets - only .env.example is committed
+.env
+.env.*
+!.env.example
+
+# Build output and logs
+frontend/dist/
+*.log
+logs/
+.vercel/
+
+# Local runtime copies (the app writes to /tmp/machinemd, never into the repo)
+*.copying
+backend/data/*.db-journal
+
+# Test artefacts
+e2e/.downloads/
+e2e/.chrome-profile-*/
+reports/screenshots/scratch/
+reports/.tmp-*
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/
+
+# NOTE: backend/data/machinemd.db and backend/data/models/*.joblib are committed on purpose -
+# the live (Vercel) app loads them; it cannot train heavy models inside a request.
