@@ -176,7 +176,7 @@ No CLI, no tokens. In the Vercel dashboard:
 | Limit | How MachineMD handles it |
 | --- | --- |
 | Read-only filesystem except `/tmp` | The seeded SQLite file is copied to `/tmp/machinemd` on cold start; all writes go there. Retrained models are saved to `/tmp/machinemd/models`. |
-| Short function time limits | Models are pre-trained locally and committed. Requests are fast: the slowest read endpoint took 134 ms (5,000-row CSV export) and most take under 25 ms. A light retrain takes about 3–4 s. |
+| Short function time limits | Models are pre-trained locally and committed. Requests are fast: the slowest read endpoint took 60 ms (5,000-row CSV export) and most take under 15 ms locally. A light retrain takes about 3 s. |
 | Python bundle size | No pandas, SHAP or deep-learning libraries; tests, scripts, reports and the frontend are excluded from the function. numpy/scipy/scikit-learn are pinned to releases with manylinux2014 wheels. With newer releases the local `vercel build` failed with `LAMBDA_SIZE_EXCEEDED` (246 MB > 225 MB); with the pins it completes. |
 | Instances are recycled | Changes reset to the seed; the UI says so. Self-healing covers a missing database or model file. |
 | Cold starts | The login page pings `/api/health` while you type, and slow requests show "Waking up the server, please wait...". |

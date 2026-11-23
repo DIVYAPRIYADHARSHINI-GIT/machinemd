@@ -1,18 +1,18 @@
 {
   "timings": {
-    "/dashboard/summary": 12,
-    "/machines": 9,
-    "/machines/1": 22,
-    "/predictions/latest": 5,
+    "/dashboard/summary": 14,
+    "/machines": 11,
+    "/machines/1": 14,
+    "/predictions/latest": 4,
     "/models": 4,
-    "/models/active": 5,
+    "/models/active": 4,
     "/alerts": 4,
     "/maintenance": 4,
-    "/reports/summary": 6,
-    "/reports/export/readings": 134,
-    "/whatif/defaults?machine_id=1": 4,
+    "/reports/summary": 5,
+    "/reports/export/readings": 60,
+    "/whatif/defaults?machine_id=1": 5,
     "/predictions/machine/1/history": 5,
     "/activity": 3
   },
-  "retrain_seconds": 3.746
+  "retrain_seconds": 3.091
 }

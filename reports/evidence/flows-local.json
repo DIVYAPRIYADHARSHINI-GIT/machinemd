@@ -1,7 +1,7 @@
 {
   "name": "MachineMD secondary flows",
   "base": "http://localhost:5173",
-  "when": "2026-11-23T09:43:41.623Z",
+  "when": "2026-11-23T10:14:24.852Z",
   "passed": 15,
   "total": 15,
   "items": [
@@ -39,7 +39,7 @@
       "id": "F6",
       "desc": "Batch prediction scores valid rows (healthy pump Low, hot shaky compressor High) and reports the bad row",
       "pass": true,
-      "detail": "LINE\tMACHINE\tRISK\tHEALTH\tRUL\tDRIVERS\n2\tPump\t\nLow 0.0%\t100\t>14 d\t—\n3\tCompressor\t\nHigh 98.2%\t2\t3.1 d\tVibration, Temperature"
+      "detail": "LINE\tMACHINE\tRISK\tHEALTH\tRUL\tDRIVERS\n2\tPump\t\nLow 0.0%\t100\t>14 d\t—\n3\tCompressor\t\nHigh 97.7%\t2\t3.4 d\tVibration, Temperature"
     },
     {
       "id": "F7",

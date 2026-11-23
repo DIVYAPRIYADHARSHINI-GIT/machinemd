@@ -1,7 +1,7 @@
 {
   "name": "MachineMD acceptance",
   "base": "http://localhost:5173",
-  "when": "2026-11-23T09:45:02.887Z",
+  "when": "2026-11-23T10:12:56.007Z",
   "passed": 64,
   "total": 64,
   "items": [
@@ -69,7 +69,7 @@
       "id": "D4",
       "desc": "Dashboard KPI \"avg health score\" equals the mean of all machine health scores",
       "pass": true,
-      "detail": "87 vs 87"
+      "detail": "86.9 vs 86.9"
     },
     {
       "id": "D5",
@@ -105,7 +105,7 @@
       "id": "P3",
       "desc": "Metrics are real and not suspiciously perfect (0.6 < ROC-AUC < 0.99, recall < 0.99)",
       "pass": true,
-      "detail": "{\"rf\":{\"accuracy\":0.9646,\"precision\":0.9688,\"recall\":0.6596,\"f1\":0.7848,\"roc_auc\":0.9209,\"pr_auc\":0.8236},\"gb\":{\"accuracy\":0.953,\"precision\":0.7933,\"recall\":0.7021,\"f1\":0.7449,\"roc_auc\":0.9302,\"pr_auc\":0.7975}}"
+      "detail": "{\"rf\":{\"accuracy\":0.9646,\"precision\":0.9688,\"recall\":0.6596,\"f1\":0.7848,\"roc_auc\":0.9208,\"pr_auc\":0.8238},\"gb\":{\"accuracy\":0.9534,\"precision\":0.8,\"recall\":0.6979,\"f1\":0.7455,\"roc_auc\":0.9361,\"pr_auc\":0.8033}}"
     },
     {
       "id": "P4",
@@ -177,13 +177,13 @@
       "id": "W2",
       "desc": "Raising vibration as well raises the risk further and lowers health and RUL",
       "pass": true,
-      "detail": "{\"s0\":{\"risk\":0,\"health\":100,\"rul\":\">14 days\",\"level\":\"Low\"},\"s1\":{\"risk\":1,\"health\":99,\"rul\":\"10.7 days\",\"level\":\"Low\"},\"s2\":{\"risk\":50,\"health\":50,\"rul\":\"4.6 days\",\"level\":\"Medium\"}}"
+      "detail": "{\"s0\":{\"risk\":0,\"health\":100,\"rul\":\">14 days\",\"level\":\"Low\"},\"s1\":{\"risk\":1,\"health\":99,\"rul\":\"10.6 days\",\"level\":\"Low\"},\"s2\":{\"risk\":48,\"health\":52,\"rul\":\"4.8 days\",\"level\":\"Medium\"}}"
     },
     {
       "id": "W3",
       "desc": "Health score = 100 - risk%",
       "pass": true,
-      "detail": "{\"risk\":50,\"health\":50,\"rul\":\"4.6 days\",\"level\":\"Medium\"}"
+      "detail": "{\"risk\":48,\"health\":52,\"rul\":\"4.8 days\",\"level\":\"Medium\"}"
     },
     {
       "id": "W4",
@@ -235,7 +235,7 @@
     },
     {
       "id": "ML2",
-      "desc": "Light retrain creates a new model version (took 3.7 s)",
+      "desc": "Light retrain creates a new model version (took 3.1 s)",
       "pass": true,
       "detail": "v3,v2,v1"
     },
@@ -261,7 +261,7 @@
       "id": "AL3",
       "desc": "Logging maintenance marks the high-risk alert as Handled",
       "pass": true,
-      "detail": "{\"id\":32,\"machine_id\":10,\"machine_code\":\"MTR-002\",\"machine_name\":\"Mixer Motor A\",\"machine_type\":\"Motor\",\"location\":\"Plant A - Line 2\",\"risk_level\":\"High\",\"failure_probability\":0.8016,\"message\":\"Mixer Motor A (MTR-002) is at high risk of failure: 80% probability within 7 days, estimated remaining life about 9.1 days. Main drivers: Vibration, Running hours.\",\"status\":\"Handled\",\"created_at\":\"2026-11-"
+      "detail": "{\"id\":32,\"machine_id\":10,\"machine_code\":\"MTR-002\",\"machine_name\":\"Mixer Motor A\",\"machine_type\":\"Motor\",\"location\":\"Plant A - Line 2\",\"risk_level\":\"High\",\"failure_probability\":0.7821,\"message\":\"Mixer Motor A (MTR-002) is at high risk of failure: 78% probability within 7 days, estimated remaining life about 9.2 days. Main drivers: Vibration, Running hours.\",\"status\":\"Handled\",\"created_at\":\"2026-11-"
     },
     {
       "id": "AL4",
@@ -301,9 +301,9 @@
     },
     {
       "id": "T1",
-      "desc": "Every read endpoint answers well within the function limit (slowest 134 ms)",
+      "desc": "Every read endpoint answers well within the function limit (slowest 60 ms)",
       "pass": true,
-      "detail": "{\"/dashboard/summary\":12,\"/machines\":9,\"/machines/1\":22,\"/predictions/latest\":5,\"/models\":4,\"/models/active\":5,\"/alerts\":4,\"/maintenance\":4,\"/reports/summary\":6,\"/reports/export/readings\":134,\"/whatif/defaults?machine_id=1\":4,\"/predictions/machine/1/history\":5,\"/activity\":3}"
+      "detail": "{\"/dashboard/summary\":14,\"/machines\":11,\"/machines/1\":14,\"/predictions/latest\":4,\"/models\":4,\"/models/active\":4,\"/alerts\":4,\"/maintenance\":4,\"/reports/summary\":5,\"/reports/export/readings\":60,\"/whatif/defaults?machine_id=1\":5,\"/predictions/machine/1/history\":5,\"/activity\":3}"
     },
     {
       "id": "V1",
