@@ -76,14 +76,14 @@ Test period: 2,404 readings, 235 of them within 7 days of a failure (9.8 %), thr
 | Model | Accuracy | Precision | Recall | F1 | ROC-AUC | PR-AUC | TP / FP / FN / TN |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | **Random Forest (serving, v1)** | 0.965 | 0.969 | 0.660 | **0.785** | 0.921 | **0.824** | 155 / 5 / 80 / 2,164 |
-| Gradient Boosting (v2) | 0.953 | 0.793 | 0.702 | 0.745 | **0.930** | 0.798 | 165 / 43 / 70 / 2,126 |
+| Gradient Boosting (v2) | 0.953 | 0.800 | 0.698 | 0.746 | **0.936** | 0.803 | 164 / 41 / 71 / 2,128 |
 | Always "no failure" | 0.902 | 0 | 0 | 0 | 0.5 | 0.098 | — |
 
 - **RUL regressor:** MAE **1.34 days** vs 2.33 days for a constant guess (R² 0.58).
 - **Isolation Forest:** flags 18.7 % of readings in the week before a failure vs 2.1 % of healthy readings.
 - **Top sensors:** vibration (39 %), temperature (26 %), running hours (17 %), current (11 %).
 - Accuracy alone is misleading here (the do-nothing baseline already scores 0.90), so F1 and PR-AUC drive model choice.
-- **Random Forest serves by default:** it has the best F1 and PR-AUC and only 5 false alarms. Gradient Boosting catches 10 more failures at the cost of 38 more false alarms. Both are shipped, and an admin can switch in Model Lab.
+- **Random Forest serves by default:** it has the best F1 and PR-AUC and only 5 false alarms. Gradient Boosting catches 9 more failures at the cost of 36 more false alarms. Both are shipped, and an admin can switch in Model Lab.
 
 ## Tech stack
 
@@ -91,6 +91,7 @@ Test period: 2,404 readings, 235 of them within 7 days of a failure (9.8 %), thr
 - **Backend:** Python 3.12, FastAPI, SQLAlchemy 2 + SQLite, numpy, scikit-learn, joblib, bcrypt, PyJWT. No pandas, SHAP, TensorFlow or PyTorch.
 - **Deployment:** Vercel Hobby. The Vite build is served as static files and FastAPI runs as one Python serverless function under `/api`.
 - **Tests:** pytest (30 API/ML tests) and a headless-Chrome suite (puppeteer-core with the installed Chrome) with 64 acceptance checks plus 15 flow checks
+- **Pinned ML versions:** numpy 2.2.6, scipy 1.16.3 and scikit-learn 1.7.2, the newest releases with manylinux2014 wheels. This lets Vercel's Python builder install them at runtime instead of bundling them (see [Vercel limits handled](#vercel-limits-handled)).
 
 ## Folder structure
 
@@ -168,7 +169,7 @@ No CLI, no tokens. In the Vercel dashboard:
 - Vercel serves `frontend/dist` as static files.
 - `api/index.py` becomes a Python function. Its dependencies come from the root `requirements.txt`, and the Python version from `.python-version` (3.12).
 - `vercel.json` rewrites `/api/*` to the function and every other route to `index.html`.
-- The function bundle includes `backend/app`, `backend/ml` and `backend/data`. Its measured size is about 303 MB unzipped (dependencies) plus 6 MB (app and data), under Vercel's 500 MB limit for Python functions.
+- The function bundle includes `backend/app`, `backend/ml` and `backend/data`. I validated the build with the Vercel builder itself (`vercel build`, offline): it completes and produces one `python3.12` function. Because the pinned wheels are manylinux2014, Vercel's optimizer keeps the bundle under its 225 MB packing limit and installs the remaining public packages at cold start into `/tmp/_vc_deps`.
 
 ## Vercel limits handled
 
@@ -176,7 +177,7 @@ No CLI, no tokens. In the Vercel dashboard:
 | --- | --- |
 | Read-only filesystem except `/tmp` | The seeded SQLite file is copied to `/tmp/machinemd` on cold start; all writes go there. Retrained models are saved to `/tmp/machinemd/models`. |
 | Short function time limits | Models are pre-trained locally and committed. Requests are fast: the slowest read endpoint took 134 ms (5,000-row CSV export) and most take under 25 ms. A light retrain takes about 3–4 s. |
-| Python bundle size | No pandas, SHAP or deep-learning libraries. About 303 MB of dependencies against a 500 MB limit. |
+| Python bundle size | No pandas, SHAP or deep-learning libraries; tests, scripts, reports and the frontend are excluded from the function. numpy/scipy/scikit-learn are pinned to releases with manylinux2014 wheels. With newer releases the local `vercel build` failed with `LAMBDA_SIZE_EXCEEDED` (246 MB > 225 MB); with the pins it completes. |
 | Instances are recycled | Changes reset to the seed; the UI says so. Self-healing covers a missing database or model file. |
 | Cold starts | The login page pings `/api/health` while you type, and slow requests show "Waking up the server, please wait...". |
 
