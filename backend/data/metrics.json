@@ -1,0 +1,200 @@
+{
+  "v1": {
+    "active": true,
+    "primary": "rf",
+    "created_at": "2026-11-23T09:13:16",
+    "classifiers": {
+      "rf": {
+        "accuracy": 0.9646,
+        "precision": 0.9688,
+        "recall": 0.6596,
+        "f1": 0.7848,
+        "roc_auc": 0.9209,
+        "pr_auc": 0.8236,
+        "confusion_matrix": {
+          "tn": 2164,
+          "fp": 5,
+          "fn": 80,
+          "tp": 155
+        },
+        "majority_baseline_accuracy": 0.9022
+      },
+      "gb": {
+        "accuracy": 0.953,
+        "precision": 0.7933,
+        "recall": 0.7021,
+        "f1": 0.7449,
+        "roc_auc": 0.9302,
+        "pr_auc": 0.7975,
+        "confusion_matrix": {
+          "tn": 2126,
+          "fp": 43,
+          "fn": 70,
+          "tp": 165
+        },
+        "majority_baseline_accuracy": 0.9022
+      }
+    },
+    "rul": {
+      "mae_days": 1.336,
+      "rmse_days": 2.5,
+      "r2": 0.5841,
+      "mae_days_near_failure": 4.375,
+      "baseline_mae_days": 2.331,
+      "n_test": 1658,
+      "cap_days": 14.0
+    },
+    "anomaly": {
+      "contamination": 0.02,
+      "test_flag_rate": 0.0374,
+      "flag_rate_within_horizon": 0.1872,
+      "flag_rate_healthy": 0.0212
+    },
+    "data": {
+      "rows_total": 10696,
+      "rows_labelled": 9900,
+      "rows_censored": 796,
+      "train_rows": 6664,
+      "test_rows": 2404,
+      "train_positive": 411,
+      "test_positive": 235,
+      "positive_rate": 0.0735,
+      "machines": 30,
+      "train_period": {
+        "start": "2026-08-25T06:30:00+00:00",
+        "end": "2026-10-20T00:30:00+00:00"
+      },
+      "test_period": {
+        "start": "2026-10-27T06:30:00+00:00",
+        "end": "2026-11-19T00:30:00+00:00"
+      },
+      "gap_days": 7,
+      "split": "chronological: train = before (cutoff - 7 days), test = after cutoff"
+    },
+    "top_sensors_rf": [
+      {
+        "sensor": "vibration",
+        "importance": 0.38842
+      },
+      {
+        "sensor": "temperature",
+        "importance": 0.26439
+      },
+      {
+        "sensor": "running_hours",
+        "importance": 0.16883
+      },
+      {
+        "sensor": "current",
+        "importance": 0.1102
+      },
+      {
+        "sensor": "pressure",
+        "importance": 0.04162
+      },
+      {
+        "sensor": "rpm",
+        "importance": 0.02654
+      }
+    ]
+  },
+  "v2": {
+    "active": false,
+    "primary": "gb",
+    "created_at": "2026-11-23T09:13:23",
+    "classifiers": {
+      "rf": {
+        "accuracy": 0.9646,
+        "precision": 0.9688,
+        "recall": 0.6596,
+        "f1": 0.7848,
+        "roc_auc": 0.9209,
+        "pr_auc": 0.8236,
+        "confusion_matrix": {
+          "tn": 2164,
+          "fp": 5,
+          "fn": 80,
+          "tp": 155
+        },
+        "majority_baseline_accuracy": 0.9022
+      },
+      "gb": {
+        "accuracy": 0.953,
+        "precision": 0.7933,
+        "recall": 0.7021,
+        "f1": 0.7449,
+        "roc_auc": 0.9302,
+        "pr_auc": 0.7975,
+        "confusion_matrix": {
+          "tn": 2126,
+          "fp": 43,
+          "fn": 70,
+          "tp": 165
+        },
+        "majority_baseline_accuracy": 0.9022
+      }
+    },
+    "rul": {
+      "mae_days": 1.336,
+      "rmse_days": 2.5,
+      "r2": 0.5841,
+      "mae_days_near_failure": 4.375,
+      "baseline_mae_days": 2.331,
+      "n_test": 1658,
+      "cap_days": 14.0
+    },
+    "anomaly": {
+      "contamination": 0.02,
+      "test_flag_rate": 0.0374,
+      "flag_rate_within_horizon": 0.1872,
+      "flag_rate_healthy": 0.0212
+    },
+    "data": {
+      "rows_total": 10696,
+      "rows_labelled": 9900,
+      "rows_censored": 796,
+      "train_rows": 6664,
+      "test_rows": 2404,
+      "train_positive": 411,
+      "test_positive": 235,
+      "positive_rate": 0.0735,
+      "machines": 30,
+      "train_period": {
+        "start": "2026-08-25T06:30:00+00:00",
+        "end": "2026-10-20T00:30:00+00:00"
+      },
+      "test_period": {
+        "start": "2026-10-27T06:30:00+00:00",
+        "end": "2026-11-19T00:30:00+00:00"
+      },
+      "gap_days": 7,
+      "split": "chronological: train = before (cutoff - 7 days), test = after cutoff"
+    },
+    "top_sensors_rf": [
+      {
+        "sensor": "vibration",
+        "importance": 0.38842
+      },
+      {
+        "sensor": "temperature",
+        "importance": 0.26439
+      },
+      {
+        "sensor": "running_hours",
+        "importance": 0.16883
+      },
+      {
+        "sensor": "current",
+        "importance": 0.1102
+      },
+      {
+        "sensor": "pressure",
+        "importance": 0.04162
+      },
+      {
+        "sensor": "rpm",
+        "importance": 0.02654
+      }
+    ]
+  }
+}
