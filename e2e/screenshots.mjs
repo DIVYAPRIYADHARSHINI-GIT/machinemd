@@ -1,0 +1,108 @@
+// Clean "working" screenshots of every main page (fresh seed state). Usage: BASE_URL=... node screenshots.mjs [prefix]
+import { api, go, launch, login, newPage, settle, shot, sleep } from './lib.mjs';
+
+const P = process.argv[2] || '';
+const browser = await launch();
+const page = await newPage(browser, { width: 1440, height: 900 });
+await login(page, 'admin@machinemd.com', 'Admin@123');
+await api(page, 'POST', '/admin/reset-demo');
+await login(page, 'admin@machinemd.com', 'Admin@123');
+const shots = [];
+const s = async (name, opts) => shots.push(await shot(page, `${P}${name}`, opts));
+const el = async (sel, name) => {
+  const h = await page.$(sel);
+  await h.scrollIntoView();
+  await sleep(300);
+  const box = await h.boundingBox();
+  const file = `${P}${name}`;
+  await page.screenshot({ path: `${(await import('./lib.mjs')).SHOTS}/${file}.png`, clip: { x: box.x - 8, y: box.y - 8, width: box.width + 16, height: box.height + 16 } });
+  shots.push(`${file}.png`);
+};
+
+await page.goto(page.url().replace(/\/[^/]*$/, '/login'));
+await page.evaluate(() => localStorage.removeItem('machinemd-token'));
+await go(page, '/login');
+await s('01-login');
+await login(page, 'admin@machinemd.com', 'Admin@123');
+await s('02-dashboard', { fullPage: true });
+await go(page, '/machines');
+await s('03-machines-list');
+const ms = (await api(page, 'GET', '/machines')).data.sort((a, b) => b.prediction.failure_probability - a.prediction.failure_probability);
+await go(page, `/machines/${ms[0].id}`);
+await s('04-machine-detail', { fullPage: true });
+await go(page, '/data');
+await s('05-data-page');
+await go(page, '/model-lab');
+await s('06-model-lab', { fullPage: true });
+await el('[data-testid=comparison-table]', '06a-model-lab-comparison');
+await el('[data-testid=cm-rf]', '06b-model-lab-confusion-matrix-rf');
+await page.evaluate(() => document.querySelector('[data-testid=cm-rf]').closest('.card').setAttribute('data-shot', 'cm'));
+await el('[data-shot=cm]', '06c-model-lab-confusion-matrices');
+await page.evaluate(() => document.querySelector('[data-testid=roc-chart]').closest('.card').setAttribute('data-shot', 'roc'));
+await el('[data-shot=roc]', '06d-model-lab-roc-curve');
+await page.evaluate(() => document.querySelector('[data-testid=pr-chart]').closest('.card').setAttribute('data-shot', 'pr'));
+await el('[data-shot=pr]', '06e-model-lab-pr-curve');
+await page.evaluate(() => document.querySelector('[data-testid=feature-importance]').closest('.card').setAttribute('data-shot', 'fi'));
+await el('[data-shot=fi]', '06f-model-lab-feature-importance');
+await go(page, `/what-if?machine=${ms[0].id}`);
+await page.waitForSelector('[data-testid=gauge-value]');
+await sleep(800);
+await s('07-what-if-machine', { fullPage: true });
+await go(page, '/what-if?type=Compressor');
+await page.waitForSelector('[data-testid=gauge-value]');
+for (const [sl, f] of [['temperature', 1.18], ['vibration', 2.2]]) {
+  await page.$eval(`[data-testid=slider-${sl}]`, (e, k) => {
+    const set = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set;
+    set.call(e, String(Math.round(Number(e.value) * k * 100) / 100));
+    e.dispatchEvent(new Event('input', { bubbles: true }));
+  }, f);
+  await sleep(400);
+}
+await settle(page);
+await sleep(600);
+await s('07b-what-if-hot-and-shaky', { fullPage: true });
+await go(page, '/alerts');
+await s('08-alerts', { fullPage: true });
+await go(page, '/maintenance');
+await s('09-maintenance-log');
+await go(page, '/reports');
+await s('10-reports', { fullPage: true });
+await go(page, '/users');
+await s('11-users');
+await go(page, '/settings');
+await s('12-settings');
+
+// Dark mode + mobile + viewer
+const dark = await newPage(browser, { width: 1440, height: 900, dark: true });
+await login(dark, 'admin@machinemd.com', 'Admin@123');
+shots.push(await shot(dark, `${P}13-dashboard-dark`, { fullPage: true }));
+await go(dark, `/machines/${ms[0].id}`);
+shots.push(await shot(dark, `${P}14-machine-detail-dark`, { fullPage: true }));
+await go(dark, '/model-lab');
+shots.push(await shot(dark, `${P}15-model-lab-dark`, { fullPage: true }));
+const mob = await newPage(browser, { width: 390, height: 844, mobile: true });
+await login(mob, 'admin@machinemd.com', 'Admin@123');
+shots.push(await shot(mob, `${P}16-mobile-dashboard`));
+await go(mob, `/machines/${ms[0].id}`);
+shots.push(await shot(mob, `${P}17-mobile-machine-detail`));
+await go(mob, '/what-if');
+shots.push(await shot(mob, `${P}18-mobile-what-if`));
+await mob.click('[data-testid=menu-button]');
+await sleep(300);
+shots.push(await shot(mob, `${P}19-mobile-menu`));
+const mobDark = await newPage(browser, { width: 390, height: 844, mobile: true, dark: true });
+await login(mobDark, 'admin@machinemd.com', 'Admin@123');
+await go(mobDark, '/alerts');
+shots.push(await shot(mobDark, `${P}20-mobile-dark-alerts`));
+const v = await newPage(browser, { width: 1440, height: 900 });
+await login(v, 'viewer@machinemd.com', 'Viewer@123');
+await go(v, '/machines');
+shots.push(await shot(v, `${P}21-viewer-machines-readonly`));
+await go(v, '/model-lab');
+shots.push(await shot(v, `${P}22-viewer-model-lab-readonly`));
+await go(v, '/data');
+shots.push(await shot(v, `${P}23-viewer-data-readonly`));
+const problems = [page, dark, mob, mobDark, v].flatMap((p) => p.problems);
+console.log(shots.join('\n'));
+console.log('problems:', problems.length ? problems : 'none');
+await browser.close();
