@@ -5,9 +5,9 @@
 | | |
 | --- | --- |
 | GitHub repository | https://github.com/DIVYAPRIYADHARSHINI-GIT/machinemd (public, branch `main`) |
-| Live site | _Pending: added after the Vercel import (see section 10)_ |
+| Live site | **https://machinemd.vercel.app** (Vercel Hobby, one project, deployed from `main`) |
 | Demo logins | Admin `admin@machinemd.com` / `Admin@123` · Viewer `viewer@machinemd.com` / `Viewer@123` |
-| Test status | 30/30 pytest · 64/64 browser acceptance checks (local and on a fresh GitHub clone) · 15/15 flow checks · 6 bugs found and fixed, 0 open |
+| Test status | **Live site:** 65/65 acceptance + 15/15 flow checks · **Local / fresh clone / 2-instance simulation:** 65/65 + 15/15 · 34/34 pytest · 8 bugs found and fixed (2 only on the live site), 0 open |
 
 ---
 
@@ -36,11 +36,11 @@ machinemd/
 ├── vercel.json                build command, output dir, rewrites, function config
 ├── requirements.txt           trimmed runtime dependencies for the function
 ├── backend/
-│   ├── app/                   main.py, routers/ (12), services/ (bootstrap, registry, predictions), models.py, security.py
+│   ├── app/                   main.py, routers/ (12), services/ (bootstrap, registry, predictions), models.py, security.py, sync.py
 │   ├── ml/                    config, generator, features, dataset (labels + split), train, serve (+ explanations)
 │   ├── scripts/seed_and_train.py
 │   ├── data/                  machinemd.db, models/machinemd-v1.joblib, machinemd-v2.joblib, metrics.json  (committed)
-│   └── tests/                 test_api.py, test_selfheal.py
+│   └── tests/                 test_api.py, test_selfheal.py, test_multi_instance.py
 ├── frontend/src/              pages/ (12), components/, lib/
 ├── e2e/                       acceptance.mjs, flows.mjs, screenshots.mjs, coldstart.mjs …
 ├── docs/screenshots/          README images
@@ -81,6 +81,8 @@ machinemd/
 | Sidebar, top bar, responsive, light/dark, skeletons, empty states, toasts, confirm dialogs | ✅ | components |
 | Viewer: edit actions hidden in UI and blocked in the API | ✅ | checks V1–V11 |
 | In-app note that Vercel storage is temporary | ✅ | banner, Model Lab, Settings |
+| Live site, one URL, tested end to end | ✅ https://machinemd.vercel.app | section 7, 10 |
+| Consistent data across Vercel's parallel serverless instances | ✅ (added after live testing, BUG-07/08) | `app/sync.py` |
 
 <div class="pair">
 <figure><img src="screenshots/working/01-login.png"><figcaption>Login page with demo accounts</figcaption></figure>
@@ -218,9 +220,17 @@ Logging maintenance on a machine with an open alert does three things: it sets t
 ## 7. Testing summary
 
 **Test suites**
-- **pytest (30 tests):** auth, rate limit, viewer 403 on 15 write endpoints, ML acceptance, what-if monotonicity for all 4 machine types, upload with bad rows, retrain/activate, the alert → maintenance flow, dashboard consistency, exports, timing, self-heal with a missing DB and with missing model files, and a check that the seed DB is never modified.
-- **Headless-Chrome acceptance (64 checks):** run against the dev servers and against a **fresh clone from GitHub** (production build + uvicorn, runtime DB in a temp directory). Both 64/64.
-- **Flow checks (15):** theme, machine CRUD, single reading, batch prediction, confirm dialog, users, thresholds, PDF content, password change, logout revocation, expired session, 404. All 15/15.
+- **pytest (34 tests):** auth, rate limit, viewer 403 on 15 write endpoints, ML acceptance, what-if monotonicity for all 4 machine types, upload with bad rows, retrain/activate, the alert → maintenance flow, dashboard consistency, exports, timing, self-heal with a missing DB and with missing model files, a check that the seed DB is never modified, and **3 multi-instance tests** that start two real uvicorn processes with separate data folders (like two Vercel instances): changes and sign-out reach the second instance, and forged journal entries are rejected.
+- **Headless-Chrome acceptance (65 checks)**, run 4 ways:
+  - against the **live site** https://machinemd.vercel.app: **65/65**;
+  - against the local dev servers: 65/65;
+  - against two isolated local instances behind a round-robin proxy (simulating Vercel): 64/64 (before the MT1b check was added);
+  - against a fresh clone from GitHub: 64/64 (same suite, before BUG-07/08).
+- **Flow checks (15):** theme, machine CRUD, single reading, batch prediction, confirm dialog, users, thresholds, PDF content, password change, logout revocation on every instance, expired session, 404. **15/15 on the live site** and 15/15 locally.
+- **Live multi-instance probes:**
+  - after a retrain, 12/12 parallel requests see the new version;
+  - after Reset demo, 12/12 report the seed's 10,696 readings;
+  - after sign-out, 0/12 accept the old token.
 - **Vercel build:** the local `vercel build` completes and produces one `python3.12` function that includes `backend/data`.
 
 | Acceptance check | Evidence | Result |
@@ -232,15 +242,15 @@ Logging maintenance on a machine with an open alert does three things: it sets t
 | CSV upload with a bad row shows a clear error and loads the valid rows | C1–C5: line 3 "Temperature must be a number (got 'abc')", line 5 "Unknown machine code 'ZZZ-999'"; exactly 2 valid rows imported | **Pass** |
 | A high-risk machine shows an alert, and logging maintenance handles it | AL1–AL4: acknowledge → log maintenance → status Handled, open alerts −1 | **Pass** |
 | Dashboard numbers match the data | D1–D5: every KPI recomputed from the machines and alerts APIs | **Pass** |
-| Every API call finishes within Vercel's time limit | T1: slowest read 60 ms (5,000-row CSV export), most under 15 ms; light retrain ~3 s (limit set to 60 s) | **Pass** |
+| Every API call finishes within Vercel's time limit | T1 **live**: slowest read 1.1 s (5,000-row CSV export), all other reads 0.27–0.54 s including network from India to the iad1 region; light retrain 6.1 s on Vercel (~3 s locally); limit 60 s | **Pass** |
 | Runs from a clean clone with the README steps | Fresh `git clone` from GitHub → `pip install` → `npm ci` → pytest 30/30 → build → acceptance 64/64 | **Pass** |
 | Works when started the way Vercel starts it (read-only filesystem except `/tmp`) | Imported `api/index.py` from a `chmod -R a-w` copy of the repo: DB copied to `/tmp`, retrain wrote `/tmp/.../models/v3`; `test_seed_files_untouched`; self-heal tests | **Pass** |
 | Responsive (mobile), light and dark mode, no console errors | RS1 (0 px overflow on 11 pages at 390 px, dark), E1 (0 console errors / 5xx), E2 (only deliberate 4xx) | **Pass** |
-| Live site end to end | Waiting for the Vercel deployment URL (section 10) | **Pending** |
+| Live site end to end (admin and viewer login, prediction, what-if, alerts, reports) | https://machinemd.vercel.app: acceptance 65/65, flows 15/15, 31 live screenshots, no console errors (E1) | **Pass** |
 
 ## 8. Bug log
 
-All 6 bugs were found during my own browser testing and screenshotted when they happened. Each was fixed, re-tested and screenshotted again. Full steps, expected and actual results are in [`BUG_LOG.md`](BUG_LOG.md).
+All 8 bugs were found during my own browser testing and screenshotted when they happened. BUG-01 to BUG-06 were found locally; BUG-07 and BUG-08 only appeared on the live site. Each was fixed, re-tested and screenshotted again. Full steps, expected and actual results are in [`BUG_LOG.md`](BUG_LOG.md).
 
 | ID | Page / endpoint | Severity | Status |
 | --- | --- | --- | --- |
@@ -250,6 +260,8 @@ All 6 bugs were found during my own browser testing and screenshotted when they 
 | BUG-04 | Toast covers the Edit/Delete buttons of the last table rows | Low | Fixed |
 | BUG-05 | After sign-out, the next sign-in lands on the previous user's page | Low | Fixed |
 | BUG-06 | What-if simulator disagrees with the machine's live prediction | High | Fixed |
+| BUG-07 | **Live:** data differs between Vercel instances (changes flicker in and out) | High | Fixed |
+| BUG-08 | **Live:** after sign-out the old token still worked on other instances | Medium | Fixed |
 
 ### BUG-01 · Medium · Fixed: horizontal overflow on mobile
 
@@ -317,6 +329,45 @@ All 6 bugs were found during my own browser testing and screenshotted when they 
 <figure><img src="screenshots/BUG-06-fixed.png"><figcaption>After: simulator 61 % High, matching the live prediction</figcaption></figure>
 </div>
 
+### BUG-07 · High · Fixed (live only): data differs between Vercel instances
+
+**Steps:** on https://machinemd.vercel.app, Model Lab → Light retrain (creates v3), then make 12 parallel `GET /api/models` calls. **Expected:** all show v3. **Actual:** only 8/12 did. Uploads, maintenance records, alerts and settings flickered the same way, and the live acceptance run aborted.
+
+**Cause:** Vercel runs several instances at once, each with its own `/tmp` copy of the database.
+
+**Fix:** a signed client-held change journal (`backend/app/sync.py`).
+- Each admin change comes back HMAC-signed in `X-MachineMD-Op`.
+- The browser sends the ordered journal with every request.
+- Any instance replays the changes it has not applied yet (as the same user, at the same timestamp, with a deterministic retrain), tracked in `applied_ops`.
+- Forged entries are rejected, and no passwords are stored.
+
+**Re-test:** first reproduced and fixed against two local instances behind a round-robin proxy. Live result: 12/12 parallel reads consistent, acceptance 65/65, flows 15/15. Regression tests added.
+
+<div class="pair">
+<figure><img src="screenshots/BUG-07-live-state-differs-between-vercel-instances.png"><figcaption>Before (live): only 8 of 12 parallel API calls can see the retrained v3</figcaption></figure>
+<figure><img src="screenshots/BUG-07-fixed.png"><figcaption>After (live): all 12 of 12 see it; the journal is replayed on every instance</figcaption></figure>
+</div>
+
+### BUG-08 · Medium · Fixed (live only): sign-out did not reach every instance
+
+**Steps:** sign in → sign out → send the old token 12 times in parallel. **Expected:** 12× 401. **Actual:** 7 of 12 still accepted. The revoked-token list lived in one instance's `/tmp`.
+
+**Fix:** logout is a journaled change carrying the revoked token id and expiry, so every instance applies it. **Re-test:** 0/12 accepted on the live site; flow check F13 passes.
+
+**Remaining limitation:** a copied token sent without this browser's journal can still reach an instance that never saw the logout, until the token expires.
+
+<div class="pair">
+<figure><img src="screenshots/BUG-08-live-logout-token-still-valid-on-other-instances.png"><figcaption>Before (live): 7/12 requests with the signed-out token still accepted</figcaption></figure>
+<figure><img src="screenshots/BUG-08-fixed.png"><figcaption>After (live): 0/12 accepted</figcaption></figure>
+</div>
+
+**Test-harness issues found live (no app change needed):**
+- A number field could not be cleared by triple-click in headless Chrome, so the test appended to the old value.
+- Upload test timestamps could collide with seeded readings later in the day; the validator correctly rejected them as duplicates.
+- A second test browser context lacked the first one's journal.
+
+All three were fixed in the tests. Details are in `BUG_LOG.md`.
+
 **Deployment issue found and fixed before go-live (not a UI bug).** The local `vercel build` failed with `LAMBDA_SIZE_EXCEEDED` (246 MB > 225 MB). numpy 2.5 / scipy 1.18 / scikit-learn 1.9 ship only manylinux_2_27 wheels, so Vercel's optimizer force-bundled them. I pinned numpy 2.2.6 / scipy 1.16.3 / scikit-learn 1.7.2 (manylinux2014 wheels), retrained and re-tested. The build now completes.
 
 ## 9. Working screenshots
@@ -344,17 +395,40 @@ All 6 bugs were found during my own browser testing and screenshotted when they 
 <figure><img src="screenshots/working/19-mobile-menu.png"><figcaption>Mobile navigation drawer</figcaption></figure>
 </div>
 
+### Live site screenshots (https://machinemd.vercel.app)
+
+<div class="pair">
+<figure><img src="screenshots/live/LIVE-01b-login-waking-up.png"><figcaption>Live: "Waking up the server, please wait..." on a slow sign-in</figcaption></figure>
+<figure><img src="screenshots/live/LIVE-02-dashboard.png"><figcaption>Live: dashboard (same KPIs as the local seed)</figcaption></figure>
+</div>
+<div class="pair">
+<figure><img src="screenshots/live/LIVE-04-machine-detail.png"><figcaption>Live: machine detail with anomaly points and contributing sensors</figcaption></figure>
+<figure><img src="screenshots/live/LIVE-06-model-lab.png"><figcaption>Live: Model Lab</figcaption></figure>
+</div>
+<div class="pair">
+<figure><img src="screenshots/live/LIVE-07b-what-if-hot-and-shaky.png"><figcaption>Live: what-if simulator</figcaption></figure>
+<figure><img src="screenshots/live/LIVE-08-alerts.png"><figcaption>Live: alerts</figcaption></figure>
+</div>
+<div class="pair">
+<figure><img src="screenshots/live/LIVE-10-reports.png"><figcaption>Live: reports (PDF + CSV)</figcaption></figure>
+<figure><img src="screenshots/live/LIVE-22-viewer-model-lab-readonly.png"><figcaption>Live: viewer, read-only Model Lab</figcaption></figure>
+</div>
+<div class="pair">
+<figure><img src="screenshots/live/LIVE-16-mobile-dashboard.png"><figcaption>Live: mobile dashboard</figcaption></figure>
+<figure><img src="screenshots/live/LIVE-20-mobile-dark-alerts.png"><figcaption>Live: mobile, dark mode, alerts</figcaption></figure>
+</div>
+
 ## 10. Deployment details
 
 | | |
 | --- | --- |
-| Live URL | _Pending: added after deployment_ |
+| Live URL | **https://machinemd.vercel.app** |
 | GitHub | https://github.com/DIVYAPRIYADHARSHINI-GIT/machinemd |
 | Env variables (names only, all optional) | `MACHINEMD_JWT_SECRET`, `MACHINEMD_JWT_EXPIRE_MINUTES`, `MACHINEMD_DATA_DIR`, `MACHINEMD_CORS_ORIGINS`, `VITE_API_PROXY` (dev only) |
 
 **Vercel import (dashboard only, no CLI or tokens)**
 1. Add New… → Project → Import `DIVYAPRIYADHARSHINI-GIT/machinemd`.
-2. Framework Preset: **Other**.
+2. Application Preset: **Other**. Vercel suggested *Services* ("Multiple applications detected"); switch it to Other and do not click "Import single project".
 3. Root Directory: `./`.
 4. Leave the build, output and install overrides off; `vercel.json` supplies them.
 5. *(Optional)* Add the environment variable `MACHINEMD_JWT_SECRET`.
@@ -376,6 +450,7 @@ To regenerate data and models: `python backend/scripts/seed_and_train.py`.
 | Read-only filesystem except `/tmp` | The seed DB is copied to `/tmp/machinemd` on cold start and all writes go there. Retrained models go to `/tmp/machinemd/models`. Verified by running from a read-only copy of the repo. |
 | Function time limit | Heavy training is done offline and the models are committed. Reads take under 60 ms; a light retrain about 3 s; `maxDuration` is 60 s. |
 | Bundle size | No pandas or deep-learning libraries. Tests, docs and frontend are excluded from the function. ML wheels are pinned to manylinux2014, so Vercel's optimizer keeps the bundle under its 225 MB packing limit (verified with `vercel build`). |
+| Several instances in parallel, each with its own `/tmp` DB | Signed client change journal: every instance replays the admin changes it has not applied yet. Verified live: 12/12 consistent after a retrain, a reset and a sign-out. |
 | Recycled instances / cold starts | Changes reset to the seed, as the banner says. Self-healing covers a missing DB or model file. The login page pre-warms `/api/health` and shows "Waking up the server, please wait...". |
 
 ## 11. Known limitations and next improvements
@@ -383,12 +458,12 @@ To regenerate data and models: `python backend/scripts/seed_and_train.py`.
 **Limitations**
 - **Synthetic data.** Realistic patterns, but the metrics describe the simulation, not a real plant.
 - **Temporary storage on Vercel.** Uploads, edits, new users and retrained models disappear when the instance is recycled. The pre-trained v1/v2 models and the seed data always remain.
-- **Per-instance state.** The login rate limiter and the logout denylist live in each serverless instance.
+- **Consistency is per browser.** On Vercel, shared state is kept consistent by each browser's signed change journal, which is up to ~12 KB, oldest entries dropped first. A different browser, or a copied token sent without the journal, can reach an instance that has not seen the changes until that instance is recycled. The login rate limiter is per instance. A hosted database would remove both limitations.
 - **RUL is capped at 14 days.** Beyond that the model only says "no failure expected soon".
 - **Steady-state scoring.** Single and batch predictions from raw values assume a steady state (no trend). With a machine selected, the what-if simulator does use the machine's real trend.
 
 **Next improvements**
-1. A hosted Postgres database (e.g. Neon free tier) and object storage for persistent data and model files.
+1. A hosted Postgres database (e.g. Neon free tier) and object storage for persistent, shared data and model files. This would replace the change journal.
 2. Probability calibration for Gradient Boosting, and threshold tuning per machine type against a maintenance-cost matrix.
 3. Survival models (e.g. a Weibull or Cox model) for RUL beyond 14 days.
 4. Streaming ingestion (MQTT/webhook) with scheduled re-scoring, plus e-mail or Teams notifications for new High alerts.

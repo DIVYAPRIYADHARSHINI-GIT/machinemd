@@ -4,7 +4,7 @@
 
 Full-stack app: a React frontend plus a FastAPI backend with a real scikit-learn pipeline (data → features → training → evaluation → prediction → explanation). It deploys to Vercel as **one project at one URL**.
 
-- **Live site:** _added after the first Vercel deployment (see [Deploy to Vercel](#deploy-to-vercel))_
+- **Live site:** **https://machinemd.vercel.app** (tested end to end: 65/65 acceptance + 15/15 flow checks on the live deployment)
 - **Repository:** https://github.com/DIVYAPRIYADHARSHINI-GIT/machinemd
 - **Final report:** [`reports/MachineMD_Final_Report.pdf`](reports/MachineMD_Final_Report.pdf) ([Markdown copy](reports/MachineMD_Final_Report.md))
 
@@ -90,7 +90,7 @@ Test period: 2,404 readings, 235 of them within 7 days of a failure (9.8 %), thr
 - **Frontend:** React 19, Vite 8, Tailwind CSS 4, React Router 7, Recharts 3, jsPDF (PDF report, loaded on demand)
 - **Backend:** Python 3.12, FastAPI, SQLAlchemy 2 + SQLite, numpy, scikit-learn, joblib, bcrypt, PyJWT. No pandas, SHAP, TensorFlow or PyTorch.
 - **Deployment:** Vercel Hobby. The Vite build is served as static files and FastAPI runs as one Python serverless function under `/api`.
-- **Tests:** pytest (30 API/ML tests) and a headless-Chrome suite (puppeteer-core with the installed Chrome) with 64 acceptance checks plus 15 flow checks
+- **Tests:** pytest (34 API/ML/multi-instance tests) and a headless-Chrome suite (puppeteer-core with the installed Chrome) with 65 acceptance checks plus 15 flow checks, run locally, on a fresh GitHub clone, on two isolated instances behind a round-robin proxy, and on the live site
 - **Pinned ML versions:** numpy 2.2.6, scipy 1.16.3 and scikit-learn 1.7.2, the newest releases with manylinux2014 wheels. This lets Vercel's Python builder install them at runtime instead of bundling them (see [Vercel limits handled](#vercel-limits-handled)).
 
 ## Folder structure
@@ -101,7 +101,7 @@ machinemd/
 ├── vercel.json                build + rewrites + function config
 ├── requirements.txt           trimmed runtime deps for the Python function
 ├── backend/
-│   ├── app/                   FastAPI app: main.py, routers/, services/, models.py, security.py
+│   ├── app/                   FastAPI app: main.py, routers/, services/, models.py, security.py, sync.py (multi-instance journal)
 │   ├── ml/                    generator, features, dataset/labels, training, serving + explanations
 │   ├── scripts/seed_and_train.py
 │   ├── data/                  machinemd.db (seeded), models/*.joblib, metrics.json  ← committed
@@ -160,7 +160,7 @@ No CLI, no tokens. In the Vercel dashboard:
 
 1. **Add New… → Project** → find `DIVYAPRIYADHARSHINI-GIT/machinemd` under *Import Git Repository* → **Import**.
 2. **Framework Preset:** `Other`.
-3. **Root Directory:** leave it as `./` (the repository root). Do **not** pick `frontend`.
+3. **Root Directory:** leave it as `./` (the repository root). Do **not** pick `frontend`. If Vercel suggests the **Services** preset ("Multiple applications detected"), switch the preset to **Other** and do not click "Import single project".
 4. **Build and Output Settings:** leave every override off. `vercel.json` already sets the install command (`cd frontend && npm ci`), the build command (`cd frontend && npm run build`) and the output directory (`frontend/dist`).
 5. *(Optional)* **Environment Variables:** add `MACHINEMD_JWT_SECRET` with any long random string.
 6. Click **Deploy**. When it finishes, open the URL and sign in with a demo account.
@@ -179,6 +179,7 @@ No CLI, no tokens. In the Vercel dashboard:
 | Short function time limits | Models are pre-trained locally and committed. Requests are fast: the slowest read endpoint took 60 ms (5,000-row CSV export) and most take under 15 ms locally. A light retrain takes about 3 s. |
 | Python bundle size | No pandas, SHAP or deep-learning libraries; tests, scripts, reports and the frontend are excluded from the function. numpy/scipy/scikit-learn are pinned to releases with manylinux2014 wheels. With newer releases the local `vercel build` failed with `LAMBDA_SIZE_EXCEEDED` (246 MB > 225 MB); with the pins it completes. |
 | Instances are recycled | Changes reset to the seed; the UI says so. Self-healing covers a missing database or model file. |
+| Several instances run at once, each with its own `/tmp` database | A signed change journal (`backend/app/sync.py`) keeps them consistent: each admin change comes back HMAC-signed in `X-MachineMD-Op`, the browser sends the ordered journal with every request, and any instance replays the changes it has not applied (same user, same timestamp, deterministic retrain). Verified live: 12/12 parallel requests see a retrain, a reset and a sign-out. |
 | Cold starts | The login page pings `/api/health` while you type, and slow requests show "Waking up the server, please wait...". |
 
 ## API summary
@@ -247,7 +248,7 @@ Errors always come back as JSON `{"detail": ..., "code": ...}` with the matching
 
 - The data is synthetic. The patterns are realistic but not from real machines, so the metrics describe this simulation, not a real plant.
 - Hosted storage is temporary (see the note at the top). For persistence, point SQLAlchemy at a hosted database.
-- The login rate limiter and the token denylist are per server instance.
+- The login rate limiter is per server instance. Shared state on Vercel is kept consistent by the browser's signed change journal, so it is consistent *per browser*: a different browser (or a copied token sent without the journal) can still reach an instance that has not seen the changes until that instance is recycled. A hosted database would remove this limitation.
 - RUL is capped at 14 days: beyond that the model only says "no failure expected soon".
 
 Built by **Divya Priyadharshini** · v1.0.0 · November 2026

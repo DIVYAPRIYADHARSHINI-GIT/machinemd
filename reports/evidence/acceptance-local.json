@@ -1,9 +1,9 @@
 {
   "name": "MachineMD acceptance",
   "base": "http://localhost:5173",
-  "when": "2026-11-23T10:12:56.007Z",
-  "passed": 64,
-  "total": 64,
+  "when": "2026-11-23T12:23:59.657Z",
+  "passed": 65,
+  "total": 65,
   "items": [
     {
       "id": "A0",
@@ -235,7 +235,7 @@
     },
     {
       "id": "ML2",
-      "desc": "Light retrain creates a new model version (took 3.1 s)",
+      "desc": "Light retrain creates a new model version (took 3.4 s)",
       "pass": true,
       "detail": "v3,v2,v1"
     },
@@ -276,6 +276,12 @@
       "detail": ""
     },
     {
+      "id": "MT1b",
+      "desc": "Cost field holds exactly the typed value before saving",
+      "pass": true,
+      "detail": "45500"
+    },
+    {
       "id": "MT2",
       "desc": "Editing a maintenance record saves the new cost",
       "pass": true,
@@ -301,9 +307,9 @@
     },
     {
       "id": "T1",
-      "desc": "Every read endpoint answers well within the function limit (slowest 60 ms)",
+      "desc": "Every read endpoint answers well within the function limit (slowest 66 ms)",
       "pass": true,
-      "detail": "{\"/dashboard/summary\":14,\"/machines\":11,\"/machines/1\":14,\"/predictions/latest\":4,\"/models\":4,\"/models/active\":4,\"/alerts\":4,\"/maintenance\":4,\"/reports/summary\":5,\"/reports/export/readings\":60,\"/whatif/defaults?machine_id=1\":5,\"/predictions/machine/1/history\":5,\"/activity\":3}"
+      "detail": "{\"/dashboard/summary\":22,\"/machines\":8,\"/machines/1\":21,\"/predictions/latest\":6,\"/models\":5,\"/models/active\":5,\"/alerts\":5,\"/maintenance\":5,\"/reports/summary\":6,\"/reports/export/readings\":66,\"/whatif/defaults?machine_id=1\":5,\"/predictions/machine/1/history\":5,\"/activity\":3}"
     },
     {
       "id": "V1",

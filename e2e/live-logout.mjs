@@ -23,12 +23,12 @@ const results = await page.evaluate(async (t) => {
 const accepted = results.filter((s) => s === 200).length;
 console.log(`old token after sign-out: ${accepted}/12 parallel requests still accepted ->`, results.join(','));
 if (name) {
-  await page.evaluate((txt) => {
+  await page.evaluate((txt, TXT_OK) => {
     const tag = document.createElement('div');
     tag.textContent = txt;
-    Object.assign(tag.style, { position: 'fixed', left: '16px', right: '16px', top: '16px', background: '#dc2626', color: '#fff', font: '600 13px Inter, sans-serif', padding: '10px 12px', borderRadius: '8px', zIndex: 9999 });
+    Object.assign(tag.style, { position: 'fixed', left: '16px', right: '16px', top: '16px', background: (TXT_OK) ? '#16a34a' : '#dc2626', color: '#fff', font: '600 13px Inter, sans-serif', padding: '10px 12px', borderRadius: '8px', zIndex: 9999 });
     document.body.appendChild(tag);
-  }, accepted ? `Signed out. The old token was then sent 12 times in parallel: ${accepted}/12 accepted (${results.join(', ')}) - the logout denylist lives in one instance's /tmp database` : `Signed out. The old token was then sent 12 times in parallel: 0/12 accepted (${results.join(', ')}) - every instance applied the journaled logout`);
+  }, accepted ? `Signed out. The old token was then sent 12 times in parallel: ${accepted}/12 accepted (${results.join(', ')}) - the logout denylist lives in one instance's /tmp database` : `Signed out. The old token was then sent 12 times in parallel: 0/12 accepted (${results.join(', ')}) - every instance applied the journaled logout`, accepted === 0);
   await sleep(200);
   console.log(await shot(page, name));
 }

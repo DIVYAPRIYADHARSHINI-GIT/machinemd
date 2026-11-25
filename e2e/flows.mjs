@@ -1,7 +1,7 @@
 // Secondary flows: theme toggle, machine CRUD, users, thresholds, password, add reading, batch prediction, PDF content, expired session.
 import fs from 'node:fs';
 import path from 'node:path';
-import { api, clickText, DOWNLOADS, go, launch, login, newPage, Results, settle, shot, sleep, text } from './lib.mjs';
+import { api, BASE, clickText, DOWNLOADS, go, launch, login, newPage, Results, settle, shot, sleep, text } from './lib.mjs';
 
 const R = new Results('MachineMD secondary flows');
 const OUT = process.argv[2] || 'results-flows.json';
@@ -127,8 +127,13 @@ try {
   const need = ['Fleet health summary', 'High- and medium-risk machines', 'Model performance', 'Maintenance cost', 'Random Forest', 'Gradient Boosting'];
   R.ok('F11', 'PDF contains the 4 required sections and real model metrics', need.every((n) => all.includes(n)), need.filter((n) => !all.includes(n)).join(','));
 
-  // Change password for the new user, then sign in with it
+  // Change password for the new user, then sign in with it. The new user exists only in this
+  // browser's change journal (on Vercel each instance has its own /tmp DB), so the second browser
+  // context starts with the same journal - exactly like the same person opening another tab.
   const sp = await newPage(browser);
+  const journal = await page.evaluate(() => localStorage.getItem('machinemd-journal') || '[]');
+  await sp.goto(`${BASE}/login`, { waitUntil: 'domcontentloaded' });
+  await sp.evaluate((j) => localStorage.setItem('machinemd-journal', j), journal);
   await login(sp, 'supervisor@machinemd.com', 'Plant2026');
   await go(sp, '/settings');
   await sp.type('#pw-cur', 'Plant2026');

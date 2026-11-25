@@ -1,7 +1,7 @@
 {
   "name": "MachineMD secondary flows",
   "base": "http://localhost:5173",
-  "when": "2026-11-23T10:14:24.852Z",
+  "when": "2026-11-23T12:24:31.622Z",
   "passed": 15,
   "total": 15,
   "items": [
@@ -25,9 +25,9 @@
     },
     {
       "id": "F4",
-      "desc": "Admin can edit a machine",
+      "desc": "Admin can edit a machine (name replaced exactly)",
       "pass": true,
-      "detail": ""
+      "detail": "Renamed Booster Pump"
     },
     {
       "id": "F5",
@@ -79,9 +79,9 @@
     },
     {
       "id": "F13",
-      "desc": "Logout revokes the token on the server (reuse -> 401)",
+      "desc": "Logout revokes the token on every instance (6 parallel reuses -> all 401)",
       "pass": true,
-      "detail": "401"
+      "detail": "401,401,401,401,401,401"
     },
     {
       "id": "F14",

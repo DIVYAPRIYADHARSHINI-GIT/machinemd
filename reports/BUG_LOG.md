@@ -1,6 +1,6 @@
 # MachineMD bug log
 
-Every bug below was found during my own testing in headless Chrome (desktop 1440 px and mobile 390 px, light and dark), screenshotted at the moment it happened, fixed, re-tested and screenshotted again. Screenshots are in [`screenshots/`](screenshots/).
+Every bug below was found during my own testing in headless Chrome (desktop 1440 px and mobile 390 px, light and dark), screenshotted at the moment it happened, fixed, re-tested and screenshotted again. BUG-01 to BUG-06 were found locally; BUG-07 and BUG-08 only appeared on the live Vercel deployment (https://machinemd.vercel.app). Screenshots are in [`screenshots/`](screenshots/).
 
 | ID | Page / endpoint | Severity | Status | Before | After |
 | --- | --- | --- | --- | --- | --- |
@@ -10,6 +10,8 @@ Every bug below was found during my own testing in headless Chrome (desktop 1440
 | BUG-04 | Machines list (and other tables), last rows | Low | Fixed | `BUG-04-toast-covers-last-row-actions.png` | `BUG-04-fixed.png` |
 | BUG-05 | Login after sign-out | Low | Fixed | `BUG-05-signin-after-logout-returns-to-previous-page.png` | `BUG-05-fixed.png` |
 | BUG-06 | What-if simulator / `POST /api/whatif` | High | Fixed | `BUG-06-whatif-disagrees-with-live-prediction.png` | `BUG-06-fixed.png` |
+| BUG-07 | Live site: every admin write (retrain, upload, maintenance, alerts, settings) | High | Fixed | `BUG-07-live-state-differs-between-vercel-instances.png` | `BUG-07-fixed.png` |
+| BUG-08 | Live site: `POST /api/auth/logout` | Medium | Fixed | `BUG-08-live-logout-token-still-valid-on-other-instances.png` | `BUG-08-fixed.png` |
 
 ## BUG-01: Page scrolls sideways on mobile (Dashboard, Reports)
 
@@ -65,7 +67,35 @@ Every bug below was found during my own testing in headless Chrome (desktop 1440
   3. Machine-type mode keeps the documented steady-state behaviour.
 - **Re-test:** for all 30 machines, unchanged sliders match the live probability within 0.002. Raising temperature or vibration is still monotonic. Added the regression test `test_whatif_machine_matches_live_prediction`.
 
-## Other observations (not bugs)
+## BUG-07: Live site shows different data from one request to the next
 
-- The first version of my own test harness treated deliberate 4xx responses (wrong-password test, viewer write probes) as console errors. I changed the harness, not the app: 4xx are now tracked separately and every one must be an intentional negative test (acceptance check E2).
-- No issues remain open from local testing. The live-site results are added after deployment.
+- **Where:** https://machinemd.vercel.app, any admin change. Found by the live acceptance run (check ML2) on 23 Nov 2026.
+- **Steps:** Model Lab → **Light retrain** (creates v3) → reload a few times, or fire 12 parallel `GET /api/models` calls.
+- **Expected:** every request shows v3, v2, v1.
+- **Actual:** only 8 of 12 parallel calls returned v3; the rest returned v2, v1. Uploads, maintenance records, acknowledged alerts and thresholds behaved the same way, so the UI flickered between old and new data and the acceptance run aborted.
+- **Cause:** Vercel runs several instances of the Python function at once. Each copies the seeded SQLite file into its **own** `/tmp`, so a change written by one instance is invisible to the others. This cannot happen locally, where there is only one process.
+- **Fix (no external database, still free):** a signed, client-held change journal (`backend/app/sync.py`).
+  1. Every successful admin write comes back to the browser as an HMAC-SHA256-signed description in the `X-MachineMD-Op` header.
+  2. The browser keeps the ordered journal in localStorage and sends it (deflate + base64url) with every API request.
+  3. Any instance replays, in order, the changes it has not applied yet (tracked in a new `applied_ops` table), through the same FastAPI routes, as the original user and at the original timestamp. Retrains are deterministic, so every instance ends up with identical rows and models.
+  4. Forged or unsigned entries are rejected, and passwords never enter the journal (only bcrypt hashes do).
+- **Re-test:** I first reproduced it locally with two isolated instances behind a round-robin proxy (`e2e/lb.mjs`), where the acceptance suite also failed. After the fix it passes 64/64 there. On the live site after the fix: **12/12** parallel reads see the new version, acceptance passes **65/65**, flows pass **15/15**. New regression tests in `backend/tests/test_multi_instance.py` start two real uvicorn processes with separate data directories.
+
+## BUG-08: After sign-out, the old token still worked on other instances
+
+- **Where:** https://machinemd.vercel.app, `POST /api/auth/logout`. Found by live flow check F13.
+- **Steps:** sign in → sign out → send the old token 12 times in parallel to `/api/auth/me`.
+- **Expected:** all 12 rejected (401).
+- **Actual:** 7 of 12 accepted (200). The revoked-token list was written only to the database of the instance that handled the logout (same root cause as BUG-07).
+- **Fix:** logout is now a journaled change. The signed op carries the revoked token's id and expiry (never the token itself), and every instance applies it before answering.
+- **Re-test:** on the live site, **0/12** old-token requests are accepted after sign-out. Flow check F13 (6 parallel reuses → all 401) passes, and I added the regression test `test_logout_revocation_reaches_other_instance_via_journal`.
+- **Remaining limitation (documented):** a copied token sent *without* this browser's journal, to an instance that never saw the logout, is accepted until it expires (8 h). True global revocation needs shared storage, such as a hosted database.
+
+## Other observations (not app bugs)
+
+- The first version of my own test harness treated deliberate 4xx responses (the wrong-password test, viewer write probes) as console errors. I changed the harness, not the app: 4xx responses are now tracked separately and each one must be an intentional negative test (acceptance check E2).
+- **Test-harness fixes found during live testing (no app change needed):**
+  - The cost field is `type=number`, and headless Chrome ignores triple-click / Cmd+A selection there. The test therefore appended to the old value (`4200045500`), which the API correctly rejected. The test now clears the field with `input.select()`, and a new check (MT1b) asserts the exact typed value.
+  - The upload test built its timestamps from "now − 30 h". Later in the day that landed exactly on seeded 6-hourly readings, which the validator correctly rejected as duplicates. The test now uses timestamps after the last seeded reading, with per-run minutes.
+  - A second browser context in the flow test started without the first context's journal, which on Vercel is like using a different browser. The test now shares the journal, as two tabs of one browser do.
+- No issues remain open from local or live testing.

@@ -37,12 +37,12 @@ console.log(`parallel reads that see ${created}: ${seen}/${runs.length}`);
 console.log(runs.map((r) => `${r.inst}:${r.versions}`).join('\n'));
 if (name) {
   await go(page, '/model-lab');
-  await page.evaluate((txt) => {
+  await page.evaluate((txt, TXT_OK) => {
     const tag = document.createElement('div');
     tag.textContent = txt;
-    Object.assign(tag.style, { position: 'fixed', left: '280px', top: '78px', right: '24px', background: '#dc2626', color: '#fff', font: '600 13px Inter, sans-serif', padding: '8px 12px', borderRadius: '8px', zIndex: 9999 });
+    Object.assign(tag.style, { position: 'fixed', left: '280px', top: '78px', right: '24px', background: (TXT_OK) ? '#16a34a' : '#dc2626', color: '#fff', font: '600 13px Inter, sans-serif', padding: '8px 12px', borderRadius: '8px', zIndex: 9999 });
     document.body.appendChild(tag);
-  }, seen === runs.length ? `Retrained ${created}; all ${runs.length} of ${runs.length} parallel API calls see it (journal replayed on every instance)` : `Retrained ${created} a moment ago; only ${seen} of ${runs.length} parallel API calls can see it (each Vercel instance has its own /tmp database)`);
+  }, seen === runs.length ? `Retrained ${created}; all ${runs.length} of ${runs.length} parallel API calls see it (journal replayed on every instance)` : `Retrained ${created} a moment ago; only ${seen} of ${runs.length} parallel API calls can see it (each Vercel instance has its own /tmp database)`, seen === runs.length);
   console.log(await shot(page, name));
 }
 await browser.close();

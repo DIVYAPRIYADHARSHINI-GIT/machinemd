@@ -1,0 +1,99 @@
+{
+  "name": "MachineMD secondary flows",
+  "base": "https://machinemd.vercel.app",
+  "when": "2026-11-23T12:21:36.269Z",
+  "passed": 15,
+  "total": 15,
+  "items": [
+    {
+      "id": "F1",
+      "desc": "Dark-mode toggle switches theme and survives a reload",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "id": "F2",
+      "desc": "Empty machine form shows field errors",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "id": "F3",
+      "desc": "Admin can add a machine",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "id": "F4",
+      "desc": "Admin can edit a machine (name replaced exactly)",
+      "pass": true,
+      "detail": "Renamed Booster Pump"
+    },
+    {
+      "id": "F5",
+      "desc": "Adding a single reading scores a brand-new machine",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "id": "F6",
+      "desc": "Batch prediction scores valid rows (healthy pump Low, hot shaky compressor High) and reports the bad row",
+      "pass": true,
+      "detail": "LINE\tMACHINE\tRISK\tHEALTH\tRUL\tDRIVERS\n2\tPump\t\nLow 0.0%\t100\t>14 d\t—\n3\tCompressor\t\nHigh 97.7%\t2\t3.4 d\tVibration, Temperature"
+    },
+    {
+      "id": "F7",
+      "desc": "Delete asks for confirmation and removes the machine",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "id": "F8",
+      "desc": "Admin can create a user",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "id": "F9",
+      "desc": "Lowering thresholds increases the number of High/Medium machines",
+      "pass": true,
+      "detail": "3+2 -> 5+1"
+    },
+    {
+      "id": "F10",
+      "desc": "Settings page shows the saved thresholds",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "id": "F11",
+      "desc": "PDF contains the 4 required sections and real model metrics",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "id": "F12",
+      "desc": "A user can change their password and sign in with the new one",
+      "pass": true,
+      "detail": "https://machinemd.vercel.app/ MachineMD\n\nPREDICTIVE MAINTENANCE\n\nDashboard\nMachines\nAlerts\nMaintenance\nWhat-if simulator\nModel Lab\nData\nReports\nSettings\nMachineMD v1.0 · synthetic demo data\nPS\n\nPlant Supervisor\n\nsupervisor@machinemd.com · Viewer\n\nSign out\n\nDemo storage is temporary. On the hosted version data lives in the server"
+    },
+    {
+      "id": "F13",
+      "desc": "Logout revokes the token on every instance (6 parallel reuses -> all 401)",
+      "pass": true,
+      "detail": "401,401,401,401,401,401"
+    },
+    {
+      "id": "F14",
+      "desc": "An invalid/expired session sends the user back to sign in",
+      "pass": true,
+      "detail": "https://machinemd.vercel.app/login"
+    },
+    {
+      "id": "F15",
+      "desc": "Unknown routes show a friendly 404 page",
+      "pass": true,
+      "detail": ""
+    }
+  ]
+}

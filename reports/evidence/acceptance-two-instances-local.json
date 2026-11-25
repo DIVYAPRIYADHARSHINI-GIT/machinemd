@@ -1,0 +1,393 @@
+{
+  "name": "MachineMD acceptance",
+  "base": "http://localhost:4174",
+  "when": "2026-11-23T11:24:34.320Z",
+  "passed": 64,
+  "total": 64,
+  "items": [
+    {
+      "id": "A0",
+      "desc": "Demo data reset to the committed seed before the run",
+      "pass": true,
+      "detail": "{\"status\":200,\"data\":{\"ok\":true}}"
+    },
+    {
+      "id": "L1",
+      "desc": "Login page renders with demo accounts",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "id": "L2",
+      "desc": "Wrong password shows a clear error",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "id": "H1",
+      "desc": "/api/health reports ok with the pre-trained model loaded",
+      "pass": true,
+      "detail": "{\"ok\":true,\"active_version\":\"v1\",\"serving\":\"rf\"}"
+    },
+    {
+      "id": "L3",
+      "desc": "Admin can sign in and lands on the dashboard",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "id": "L4",
+      "desc": "Top bar shows the Admin role",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "id": "U1",
+      "desc": "Storage-is-temporary note is visible in the app",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "id": "D1",
+      "desc": "Dashboard KPI \"machines monitored\" matches the machine list",
+      "pass": true,
+      "detail": "30 vs 30"
+    },
+    {
+      "id": "D2",
+      "desc": "Dashboard KPI \"high risk\" matches machines with High risk",
+      "pass": true,
+      "detail": "3 vs 3"
+    },
+    {
+      "id": "D3",
+      "desc": "Dashboard KPI \"medium risk\" matches machines with Medium risk",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "id": "D4",
+      "desc": "Dashboard KPI \"avg health score\" equals the mean of all machine health scores",
+      "pass": true,
+      "detail": "86.9 vs 86.9"
+    },
+    {
+      "id": "D5",
+      "desc": "Dashboard KPI \"open alerts\" matches the active alerts list",
+      "pass": true,
+      "detail": "5 vs 5"
+    },
+    {
+      "id": "D6",
+      "desc": "Ranked table lists the highest-risk machine first",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "id": "D7",
+      "desc": "Risk donut and health trend charts render",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "id": "P1",
+      "desc": "Every machine has a prediction from the pre-trained model",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "id": "P2",
+      "desc": "At least one machine is High risk (degrading machines detected)",
+      "pass": true,
+      "detail": "High=3"
+    },
+    {
+      "id": "P3",
+      "desc": "Metrics are real and not suspiciously perfect (0.6 < ROC-AUC < 0.99, recall < 0.99)",
+      "pass": true,
+      "detail": "{\"rf\":{\"accuracy\":0.9646,\"precision\":0.9688,\"recall\":0.6596,\"f1\":0.7848,\"roc_auc\":0.9208,\"pr_auc\":0.8238},\"gb\":{\"accuracy\":0.9534,\"precision\":0.8,\"recall\":0.6979,\"f1\":0.7455,\"roc_auc\":0.9361,\"pr_auc\":0.8033}}"
+    },
+    {
+      "id": "P4",
+      "desc": "Confusion matrix cells add up to the test-set size",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "id": "P5",
+      "desc": "Train period ends before the test period starts (time split, no leakage)",
+      "pass": true,
+      "detail": "{\"start\":\"2026-08-25T06:30:00+00:00\",\"end\":\"2026-10-20T00:30:00+00:00\"}{\"start\":\"2026-10-27T06:30:00+00:00\",\"end\":\"2026-11-19T00:30:00+00:00\"}"
+    },
+    {
+      "id": "M1",
+      "desc": "Machines table lists all 30 machines",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "id": "M2",
+      "desc": "Risk filter shows only High-risk machines",
+      "pass": true,
+      "detail": "3 vs 3"
+    },
+    {
+      "id": "M3",
+      "desc": "Search filters the table (compressor -> 7 rows)",
+      "pass": true,
+      "detail": "7"
+    },
+    {
+      "id": "M4",
+      "desc": "Sorting by health score ascending puts the least healthy machine first",
+      "pass": true,
+      "detail": "0"
+    },
+    {
+      "id": "MD1",
+      "desc": "Machine detail shows health score, RUL and a recommended action",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "id": "MD2",
+      "desc": "Five sensor trend charts are drawn",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "id": "MD3",
+      "desc": "Top contributing sensors are listed",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "id": "MD4",
+      "desc": "Anomaly points are marked on the sensor charts",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "id": "W1",
+      "desc": "Raising temperature raises the risk",
+      "pass": true,
+      "detail": "0% -> 1%"
+    },
+    {
+      "id": "W2",
+      "desc": "Raising vibration as well raises the risk further and lowers health and RUL",
+      "pass": true,
+      "detail": "{\"s0\":{\"risk\":0,\"health\":100,\"rul\":\">14 days\",\"level\":\"Low\"},\"s1\":{\"risk\":1,\"health\":99,\"rul\":\"10.6 days\",\"level\":\"Low\"},\"s2\":{\"risk\":48,\"health\":52,\"rul\":\"4.8 days\",\"level\":\"Medium\"}}"
+    },
+    {
+      "id": "W3",
+      "desc": "Health score = 100 - risk%",
+      "pass": true,
+      "detail": "{\"risk\":48,\"health\":52,\"rul\":\"4.8 days\",\"level\":\"Medium\"}"
+    },
+    {
+      "id": "W4",
+      "desc": "\"What changed the risk most\" chart has bars",
+      "pass": true,
+      "detail": "2"
+    },
+    {
+      "id": "W5",
+      "desc": "Back to normal values returns to Low risk",
+      "pass": true,
+      "detail": "{\"risk\":0,\"health\":100,\"rul\":\">14 days\",\"level\":\"Low\"}"
+    },
+    {
+      "id": "C1",
+      "desc": "CSV template downloads",
+      "pass": true,
+      "detail": "machinemd_readings_template.csv"
+    },
+    {
+      "id": "C2",
+      "desc": "Column mapping auto-detects non-standard headers (Temp_C, Amps, Asset)",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "id": "C3",
+      "desc": "Preview reports 2 valid rows and 2 rows with errors",
+      "pass": true,
+      "detail": "2 valid2 with errors"
+    },
+    {
+      "id": "C4",
+      "desc": "Per-row error report explains the bad row (line 3: temperature not a number; line 5: unknown machine)",
+      "pass": true,
+      "detail": "Row errors\n\nLine numbers refer to the CSV file (line 1 is the header).\n\nLINE\tMACHINE\tPROBLEM\n3\tPMP-001\t\nTemperature must be a number (got 'abc')\n\n5\tZZZ-999\t\nUnknown machine code 'ZZZ-999'"
+    },
+    {
+      "id": "C5",
+      "desc": "Importing loads exactly the 2 valid rows and skips the bad ones",
+      "pass": true,
+      "detail": "10696 -> 10698"
+    },
+    {
+      "id": "ML1",
+      "desc": "Model Lab shows comparison table, confusion matrices, ROC, PR and feature importance",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "id": "ML2",
+      "desc": "Light retrain creates a new model version (took 2.8 s)",
+      "pass": true,
+      "detail": "v3,v2,v1"
+    },
+    {
+      "id": "ML3",
+      "desc": "Activating the new version re-scores every machine with it and changes predictions",
+      "pass": true,
+      "detail": "30 machines changed"
+    },
+    {
+      "id": "AL1",
+      "desc": "A high-risk machine has an open alert",
+      "pass": true,
+      "detail": "4"
+    },
+    {
+      "id": "AL2",
+      "desc": "Acknowledge button changes the alert to Acknowledged",
+      "pass": true,
+      "detail": "\"Acknowledged\""
+    },
+    {
+      "id": "AL3",
+      "desc": "Logging maintenance marks the high-risk alert as Handled",
+      "pass": true,
+      "detail": "{\"id\":32,\"machine_id\":10,\"machine_code\":\"MTR-002\",\"machine_name\":\"Mixer Motor A\",\"machine_type\":\"Motor\",\"location\":\"Plant A - Line 2\",\"risk_level\":\"High\",\"failure_probability\":0.7821,\"message\":\"Mixer Motor A (MTR-002) is at high risk of failure: 78% probability within 7 days, estimated remaining life about 9.2 days. Main drivers: Vibration, Running hours.\",\"status\":\"Handled\",\"created_at\":\"2026-11-"
+    },
+    {
+      "id": "AL4",
+      "desc": "Open-alert count on the dashboard drops by one",
+      "pass": true,
+      "detail": "7 -> 6"
+    },
+    {
+      "id": "MT1",
+      "desc": "Maintenance log lists the new record",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "id": "MT2",
+      "desc": "Editing a maintenance record saves the new cost",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "id": "R1",
+      "desc": "PDF report downloads and is a valid PDF",
+      "pass": true,
+      "detail": "MachineMD_Fleet_Report_2026-11-23.pdf"
+    },
+    {
+      "id": "R2",
+      "desc": "CSV export downloads",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "id": "US1",
+      "desc": "Users page lists both demo accounts",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "id": "T1",
+      "desc": "Every read endpoint answers well within the function limit (slowest 117 ms)",
+      "pass": true,
+      "detail": "{\"/dashboard/summary\":11,\"/machines\":9,\"/machines/1\":16,\"/predictions/latest\":5,\"/models\":5,\"/models/active\":5,\"/alerts\":5,\"/maintenance\":5,\"/reports/summary\":5,\"/reports/export/readings\":117,\"/whatif/defaults?machine_id=1\":5,\"/predictions/machine/1/history\":6,\"/activity\":4}"
+    },
+    {
+      "id": "V1",
+      "desc": "Viewer can sign in",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "id": "V2",
+      "desc": "Users page is hidden from the viewer navigation",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "id": "V3",
+      "desc": "Viewer opening /users is redirected away",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "id": "V4",
+      "desc": "Machines page hides Add / Edit / Delete for the viewer",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "id": "V5",
+      "desc": "Machine detail hides \"Log maintenance\" for the viewer",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "id": "V6",
+      "desc": "Alerts page hides Acknowledge for the viewer and shows a read-only notice",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "id": "V7",
+      "desc": "Model Lab hides retrain and activate for the viewer",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "id": "V8",
+      "desc": "Data page hides upload for the viewer",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "id": "V9",
+      "desc": "Maintenance page hides add/edit for the viewer",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "id": "V10",
+      "desc": "Threshold sliders are disabled for the viewer",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "id": "V11",
+      "desc": "API blocks every viewer write with 403",
+      "pass": true,
+      "detail": "POST /machines=403, DELETE /machines/1=403, POST /models/retrain=403, POST /models/v2/activate=403, POST /maintenance=403, POST /alerts/31/acknowledge=403, PUT /settings/thresholds=403, GET /users=403"
+    },
+    {
+      "id": "RS1",
+      "desc": "No horizontal overflow on any page at 390 px (mobile, dark)",
+      "pass": true,
+      "detail": "{\"/\":0,\"/machines\":0,\"/machines/16\":0,\"/model-lab\":0,\"/what-if\":0,\"/alerts\":0,\"/maintenance\":0,\"/reports\":0,\"/data\":0,\"/settings\":0,\"/users\":0}"
+    },
+    {
+      "id": "E1",
+      "desc": "No console errors, page errors, 5xx responses or failed requests during the run",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "id": "E2",
+      "desc": "Only deliberate 4xx responses occurred (9: wrong-password login + viewer write probes)",
+      "pass": true,
+      "detail": ""
+    }
+  ]
+}

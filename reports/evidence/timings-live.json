@@ -1,0 +1,18 @@
+{
+  "timings": {
+    "/dashboard/summary": 399,
+    "/machines": 348,
+    "/machines/1": 543,
+    "/predictions/latest": 299,
+    "/models": 274,
+    "/models/active": 305,
+    "/alerts": 322,
+    "/maintenance": 329,
+    "/reports/summary": 320,
+    "/reports/export/readings": 1141,
+    "/whatif/defaults?machine_id=1": 287,
+    "/predictions/machine/1/history": 302,
+    "/activity": 281
+  },
+  "retrain_seconds": 6.105
+}

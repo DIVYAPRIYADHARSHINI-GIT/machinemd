@@ -156,13 +156,17 @@ try {
   await sleep(1200);
   const tpl = fs.readdirSync(DOWNLOADS).find((f) => f.startsWith('machinemd_readings_template'));
   R.ok('C1', 'CSV template downloads', !!tpl, fs.readdirSync(DOWNLOADS).join(','));
-  const lastTs = new Date(Date.now() + 6 * 3600e3);
+  // Timestamps strictly between the last seeded reading and "now", with minutes unique to this run,
+  // so the two valid rows never collide with the seed. The earlier "now - 30 h" could land exactly
+  // on a seeded 6-hourly reading as the day went on (test-data issue, found live).
+  const seedEnd = new Date((await api(page, 'GET', '/dashboard/summary')).data.kpis.last_reading_at + 'Z');
+  const runMinute = 1 + (Date.now() % 58);
   const pad = (n) => String(n).padStart(2, '0');
   const ts = (h) => {
-    const d = new Date(lastTs.getTime() + h * 3600e3);
-    return `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())} ${pad(d.getUTCHours())}:00`;
+    const d = new Date(seedEnd.getTime() + h * 3600e3 + runMinute * 60e3);
+    return `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())} ${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}`;
   };
-  const csv = ['Asset,Time,Temp_C,Vibration,Pressure,RPM,Hours,Amps', `PMP-001,${ts(-30)},58.4,2.9,6.0,1748,1500,18.2`, `PMP-001,${ts(-24)},abc,2.9,6.0,1750,1506,18.3`, `PMP-002,${ts(-30)},58.9,2.8,6.01,1752,900,18.1`, `ZZZ-999,${ts(-30)},58,2.8,6,1750,800,18`].join('\n');
+  const csv = ['Asset,Time,Temp_C,Vibration,Pressure,RPM,Hours,Amps', `PMP-001,${ts(1)},58.4,2.9,6.0,1748,1500,18.2`, `PMP-001,${ts(2)},abc,2.9,6.0,1750,1506,18.3`, `PMP-002,${ts(1)},58.9,2.8,6.01,1752,900,18.1`, `ZZZ-999,${ts(1)},58,2.8,6,1750,800,18`].join('\n');
   const csvPath = path.resolve('.downloads/upload-with-bad-row.csv');
   fs.writeFileSync(csvPath, csv);
   const input = await page.$('[data-testid=upload-input]');
